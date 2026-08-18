@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { instagramHandle, publicAssetSrc, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { publicAssetSrc, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
 import { analyticsEvents, trackEvent } from "../../lib/analytics";
 import { HarftAttribution } from "./HarftAttribution";
+import { InstagramLink } from "./InstagramLink";
 
 const groups = ["runway", "editorial", "beauty", "digitals"] as const;
 
@@ -29,18 +30,22 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
     <main className="public-site">
       <header className={`public-header ${menuOpen ? "menu-open" : ""}`}>
         <a className="wordmark" href="#home" aria-label="Emma Garces home">EG<span>.</span></a>
-        <button className="menu-button" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}>Menu</button>
-        <nav className={menuOpen ? "public-nav open" : "public-nav"} aria-label="Portfolio navigation">
-          {["Profile", "Runway", "Editorial", "Beauty", "Digitals", "Video", "Credits", "Contact"].map((item) => (
-            <a key={item} href={`#${item.toLowerCase()}`} onClick={closeMenu}>{item}</a>
-          ))}
-          <a href="/book" onClick={() => { closeMenu(); void trackEvent(analyticsEvents.bookingCtaClick, { location: "nav" }); }}>Book</a>
-        </nav>
+        <div className="header-end">
+          <button className="menu-button" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-controls="portfolio-nav">Menu</button>
+          <nav id="portfolio-nav" className={menuOpen ? "public-nav open" : "public-nav"} aria-label="Portfolio navigation">
+            {["Profile", "Runway", "Editorial", "Beauty", "Digitals", "Video", "Credits", "Contact"].map((item) => (
+              <a key={item} href={`#${item.toLowerCase()}`} onClick={closeMenu}>{item}</a>
+            ))}
+            <a href="/book" onClick={() => { closeMenu(); void trackEvent(analyticsEvents.bookingCtaClick, { location: "nav" }); }}>Book</a>
+            {p.instagram && <InstagramLink href={p.instagram} className="nav-instagram" onClick={closeMenu} />}
+          </nav>
+        </div>
       </header>
 
       <section id="home" className={`hero ${hero ? "has-image" : "editorial-placeholder"}`}>
         {hero ? <AssetImage asset={hero} className="hero-image" priority /> : <div className="hero-monogram" aria-hidden="true">E<span>G</span></div>}
         <div className="hero-shade" />
+        <HarftAttribution compact tone="light" />
         <div className="hero-copy">
           <p className="eyebrow">Portfolio · 2026</p>
           <h1>{p.professionalName || p.fullName || "Emma Garces"}</h1>
@@ -140,7 +145,7 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
           <a href="/book" onClick={() => { void trackEvent(analyticsEvents.bookingCtaClick, { location: "contact" }); }}>Book Emma</a>
           <a href="/comp-card">View Comp Card</a>
           {p.email && <a href={`mailto:${p.email}`}>{p.email}</a>}
-          {p.instagram && <a href={p.instagram} target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent(analyticsEvents.socialOutboundClick, { network: "instagram" }); }}>{instagramHandle(p.instagram)} ↗</a>}
+          {p.instagram && <InstagramLink href={p.instagram} />}
           {p.tiktok && <a href={p.tiktok} target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent(analyticsEvents.socialOutboundClick, { network: "tiktok" }); }}>TikTok ↗</a>}
           {p.website && <a href={p.website} target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent(analyticsEvents.socialOutboundClick, { network: "website" }); }}>{p.website.replace(/^https?:\/\//, "")} ↗</a>}
           {p.agency && <span>{p.agency}</span>}

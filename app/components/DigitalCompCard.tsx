@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { availabilityLabels, instagramHandle, publicAssetSrc, selectCompCardAssets, siteUrl, type PortfolioData } from "../../lib/portfolio";
+import { availabilityLabels, publicAssetSrc, selectCompCardAssets, siteUrl, type PortfolioData } from "../../lib/portfolio";
 import { analyticsEvents, trackEvent } from "../../lib/analytics";
+import { InstagramLink } from "./InstagramLink";
 
 export function DigitalCompCard({ data, preview = false }: { data: PortfolioData; preview?: boolean }) {
   const { primary, supporting } = selectCompCardAssets(data.media, data.settings);
@@ -50,7 +51,7 @@ export function DigitalCompCard({ data, preview = false }: { data: PortfolioData
           )}
           <div className="comp-contact">
             {p.email && <a href={`mailto:${p.email}`}>{p.email}</a>}
-            {p.instagram && <a href={p.instagram} target="_blank" rel="noopener noreferrer">{instagramHandle(p.instagram)}</a>}
+            {p.instagram && <InstagramLink href={p.instagram} />}
             <a href={website} target="_blank" rel="noopener noreferrer">{website.replace(/^https?:\/\//, "")}</a>
           </div>
         </div>

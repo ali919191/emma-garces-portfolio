@@ -23,11 +23,16 @@ img { max-width: 100%; display: block; }
 .public-site { background: var(--paper); overflow: hidden; }
 .public-site.is-loading { opacity: .75; }
 .public-header { position: fixed; z-index: 30; top: 0; left: 0; right: 0; height: 82px; padding: 0 4vw; display: flex; align-items: center; justify-content: space-between; color: #f7f4ef; mix-blend-mode: difference; }
-.wordmark { font-family: var(--serif); font-size: 24px; letter-spacing: -.04em; }
+.wordmark { font-family: var(--serif); font-size: 24px; letter-spacing: -.04em; position: relative; z-index: 2; }
 .wordmark span { color: #c96d50; }
-.public-nav { display: flex; gap: 24px; align-items: center; }
+.header-end { display: flex; align-items: center; position: relative; z-index: 2; }
+.public-nav { display: flex; gap: 20px; align-items: center; }
 .public-nav a, .menu-button { font-size: 10px; text-transform: uppercase; letter-spacing: .16em; background: none; border: 0; color: inherit; }
+.public-nav a:focus-visible, .menu-button:focus-visible, .instagram-link:focus-visible, .harft-attribution a:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
 .menu-button { display: none; }
+.instagram-link { display: inline-flex; align-items: center; gap: 7px; }
+.instagram-link svg { flex-shrink: 0; }
+.public-nav .instagram-link { text-transform: none; letter-spacing: .04em; font-size: 10px; }
 .hero { position: relative; height: 100svh; min-height: 680px; color: #f5f1eb; background: #181614; }
 .hero-image { width: 100%; height: 100%; object-fit: cover; }
 .editorial-placeholder { background: radial-gradient(circle at 72% 38%, #3d3832 0, #1f1d1a 36%, #111 74%); }
@@ -51,6 +56,15 @@ img { max-width: 100%; display: block; }
 .harft-attribution em { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; font-style: normal; border-bottom: 1px solid #5c574f; padding-bottom: 4px; }
 .harft-attribution.light span, .harft-attribution.light small, .harft-attribution.light em { color: #6f6a63; }
 .harft-attribution.light em { border-color: #b7b1a8; }
+.hero .harft-attribution.top { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); z-index: 5; margin: 0; max-width: none; }
+.hero .harft-attribution.top a { flex-direction: row; align-items: center; gap: 10px; color: rgba(247, 244, 239, .72); }
+.hero .harft-attribution.top img { width: 108px; opacity: .9; }
+.hero .harft-attribution.top .harft-powered { font-size: 8px; letter-spacing: .18em; white-space: nowrap; color: rgba(247, 244, 239, .72); }
+.public-nav .nav-instagram { position: relative; }
+.contact-links .instagram-link svg, .comp-contact .instagram-link svg { width: 16px; height: 16px; }
+@media (max-width: 1400px) and (min-width: 901px) {
+  .public-nav .nav-instagram span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+}
 .platform-page { min-height: 100svh; background: var(--paper); color: var(--ink); padding: 0 7vw 80px; }
 .platform-top { height: 82px; display: flex; align-items: center; justify-content: space-between; }
 .platform-top a:not(.wordmark) { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
@@ -347,9 +361,15 @@ img { max-width: 100%; display: block; }
   .public-header.menu-open { mix-blend-mode: normal; }
   .menu-button, .wordmark { position: relative; z-index: 2; }
   .menu-button { display: block; }
-  .public-nav { position: fixed; inset: 0; background: #171513; color: white; mix-blend-mode: normal; display: none; flex-direction: column; justify-content: center; gap: 24px; }
+  .public-nav { position: fixed; inset: 0; background: #171513; color: white; mix-blend-mode: normal; display: none; flex-direction: column; justify-content: center; gap: 24px; padding: 88px 8vw 40px; overflow: auto; }
   .public-nav.open { display: flex; }
   .public-nav a { font: normal 34px var(--serif); text-transform: none; letter-spacing: -.03em; }
+  .public-nav .instagram-link { font-size: 28px; gap: 12px; }
+  .public-nav .instagram-link svg { width: 22px; height: 22px; }
+  .hero .harft-attribution.top { top: 84px; }
+  .hero .harft-attribution.top a { flex-direction: column; gap: 5px; }
+  .hero .harft-attribution.top img { width: 92px; }
+  .hero .harft-attribution.top .harft-powered { font-size: 7px; letter-spacing: .16em; }
   .hero-copy { left: 6vw; right: 6vw; bottom: 15vh; }
   .hero h1 { font-size: clamp(66px, 20vw, 110px); }
   .hero-scroll { left: 6vw; right: auto; }

@@ -46,4 +46,39 @@ describe("public portfolio rendering", () => {
     expect(html).not.toContain("hero-image");
     expect(html).not.toMatch(/\/api\/media\?key=[^"']*\\/);
   });
+
+  it("places a compact HARFT attribution at the top of the public page and keeps the footer attribution", () => {
+    const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(defaultPortfolio)} />);
+
+    expect(html).toContain("harft-attribution light top");
+    expect(html).toContain("Powered by HARFT AI");
+    expect(html).toContain("/partners/harft-ai-logo-on-light.svg");
+    expect(html).toContain("/partners/harft-ai-logo-on-dark.svg");
+    expect(html).toContain('href="https://harftai.com"');
+    expect(html).toContain("Digital Experience by HARFT AI");
+    expect(html).toContain("Digital infrastructure for modern talent.");
+    expect(html.match(/rel="noopener noreferrer"/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders Instagram with an icon and handle in navigation and contact from public profile data", () => {
+    const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(defaultPortfolio)} />);
+
+    expect(html).toContain("instagram-link nav-instagram");
+    expect(html).toContain("@_emmagarces_");
+    expect(html).toContain('href="https://www.instagram.com/_emmagarces_"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('aria-label="Instagram @_emmagarces_"');
+    expect(html).toContain("viewBox=\"0 0 24 24\"");
+    expect((html.match(/class="instagram-link/g) || []).length).toBe(2);
+  });
+
+  it("omits Instagram presentation when the profile hides Instagram", () => {
+    const source = structuredClone(defaultPortfolio);
+    source.profile.visibility.instagram = false;
+    const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(source)} />);
+
+    expect(html).not.toContain("instagram-link");
+    expect(html).not.toContain("@_emmagarces_");
+    expect(html).not.toContain("instagram.com");
+  });
 });
