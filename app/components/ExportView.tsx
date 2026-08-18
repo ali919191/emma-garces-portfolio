@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { defaultPortfolio, instagramHandle, portfolioWarnings, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { useMemo, useState } from "react";
+import { instagramHandle, portfolioWarnings, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
 
-type ExportType = "portfolio" | "comp-card" | "credits" | "digitals" | "dubai";
+export type ExportType = "portfolio" | "comp-card" | "credits" | "digitals" | "dubai";
 
 const titles: Record<ExportType, string> = {
   portfolio: "Portfolio PDF",
@@ -13,19 +13,11 @@ const titles: Record<ExportType, string> = {
   dubai: "Dubai Model Submission",
 };
 
-export function ExportView() {
-  const [data, setData] = useState<PortfolioData>(defaultPortfolio);
-  const [loaded, setLoaded] = useState(false);
-  const [type, setType] = useState<ExportType>("portfolio");
-
-  useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get("type") as ExportType | null;
-    if (requested && requested in titles) setType(requested);
-    fetch("/api/portfolio").then((response) => response.json()).then((payload) => payload.portfolio && setData(payload.portfolio)).finally(() => setLoaded(true));
-  }, []);
+export function ExportView({ initialData, initialType = "portfolio" }: { initialData: PortfolioData; initialType?: ExportType }) {
+  const data = initialData;
+  const [type, setType] = useState<ExportType>(initialType);
 
   const warnings = useMemo(() => portfolioWarnings(data), [data]);
-  if (!loaded) return <div className="export-loading">Preparing document…</div>;
 
   return (
     <main className="export-shell">

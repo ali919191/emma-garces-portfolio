@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import "./globals.css";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
-  const image = `${protocol}://${host}/og.png`;
-  const title = "Emma Garces — International Runway Model";
-  const description = "The official portfolio and international booking profile of runway model Emma Garces.";
+export function generateMetadata(): Metadata {
+  const siteUrl = process.env.SITE_URL ?? "https://emmagarces.com";
+  const title = process.env.SITE_TITLE ?? "Emma Garces — International Runway Model";
+  const description = process.env.SITE_DESCRIPTION ?? "The official portfolio and international booking profile of runway model Emma Garces.";
+  const image = process.env.SOCIAL_IMAGE_PATH ?? "/og.png";
   return {
+    metadataBase: new URL(siteUrl),
     title,
     description,
+    alternates: { canonical: "/" },
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
-    openGraph: { title, description, type: "website", images: [{ url: image, width: 1731, height: 909, alt: "Emma Garces — International Runway Model" }] },
+    openGraph: { title, description, type: "website", url: "/", images: [{ url: image, width: 1731, height: 909, alt: "Emma Garces — International Runway Model" }] },
     twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }

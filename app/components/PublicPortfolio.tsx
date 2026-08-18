@@ -1,25 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { defaultPortfolio, instagramHandle, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { useMemo, useState } from "react";
+import { instagramHandle, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
 
 const groups = ["runway", "editorial", "beauty", "digitals"] as const;
 
-function AssetImage({ asset, className = "" }: { asset: MediaAsset; className?: string }) {
-  return <img className={className} src={asset.url} alt={asset.caption || `${asset.category} portfolio photograph`} style={{ objectPosition: asset.focalPoint }} />;
+function AssetImage({ asset, className = "", priority = false }: { asset: MediaAsset; className?: string; priority?: boolean }) {
+  return <img className={className} src={asset.url} alt={asset.caption || `${asset.category} portfolio photograph`} style={{ objectPosition: asset.focalPoint }} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} />;
 }
 
-export function PublicPortfolio() {
-  const [data, setData] = useState<PortfolioData>(defaultPortfolio);
-  const [loading, setLoading] = useState(true);
+export function PublicPortfolio({ initialData }: { initialData: PortfolioData }) {
+  const data = initialData;
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/portfolio")
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((payload) => setData(payload.portfolio))
-      .finally(() => setLoading(false));
-  }, []);
 
   const publicMedia = useMemo(() => data.media.filter((asset) => asset.public), [data.media]);
   const hero = publicMedia.find((asset) => asset.id === data.settings.heroMediaId) ?? publicMedia.find((asset) => asset.featured);
@@ -30,8 +22,8 @@ export function PublicPortfolio() {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <main className={`public-site ${loading ? "is-loading" : ""}`}>
-      <header className="public-header">
+    <main className="public-site">
+      <header className={`public-header ${menuOpen ? "menu-open" : ""}`}>
         <a className="wordmark" href="#home" aria-label="Emma Garces home">EG<span>.</span></a>
         <button className="menu-button" type="button" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen}>Menu</button>
         <nav className={menuOpen ? "public-nav open" : "public-nav"} aria-label="Portfolio navigation">
@@ -42,7 +34,7 @@ export function PublicPortfolio() {
       </header>
 
       <section id="home" className={`hero ${hero ? "has-image" : "editorial-placeholder"}`}>
-        {hero ? <AssetImage asset={hero} className="hero-image" /> : <div className="hero-monogram" aria-hidden="true">E<span>G</span></div>}
+        {hero ? <AssetImage asset={hero} className="hero-image" priority /> : <div className="hero-monogram" aria-hidden="true">E<span>G</span></div>}
         <div className="hero-shade" />
         <div className="hero-copy">
           <p className="eyebrow">Portfolio · 2026</p>

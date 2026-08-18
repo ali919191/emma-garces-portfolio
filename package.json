@@ -1,46 +1,54 @@
 {
-  "name": "site-creator-vinext-starter",
-  "version": "0.1.0",
+  "name": "emma-garces-portfolio",
+  "version": "1.0.0",
   "private": true,
   "engines": {
     "node": ">=22.13.0"
   },
+  "packageManager": "pnpm@11.19.0",
   "scripts": {
-    "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev",
-    "build": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext build",
-    "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "drizzle-kit generate"
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ignore-pattern .next",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed.ts",
+    "migrate:d1": "tsx scripts/migration/d1-to-neon.ts",
+    "migrate:r2": "tsx scripts/migration/r2-to-blob.ts"
   },
   "dependencies": {
+    "@neondatabase/serverless": "1.1.0",
+    "@vercel/blob": "2.8.0",
     "drizzle-orm": "0.45.2",
+    "next": "16.3.1",
+    "next-auth": "4.24.15",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "1.37.1",
     "@eslint/js": "9.39.4",
-    "@next/eslint-plugin-next": "16.2.6",
+    "@next/eslint-plugin-next": "16.3.1",
     "@tailwindcss/postcss": "4.2.1",
+    "@testing-library/react": "16.3.2",
     "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.2",
-    "@vitejs/plugin-rsc": "0.5.26",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "16.4.0",
-    "react-server-dom-webpack": "19.2.6",
+    "jsdom": "30.0.1",
     "tailwindcss": "4.2.1",
+    "tsx": "4.23.12",
     "typescript": "5.9.3",
     "typescript-eslint": "8.59.3",
-    "vinext": "1.0.0-beta.2",
-    "vite": "8.0.13",
-    "wrangler": "4.92.0"
+    "vitest": "4.1.11"
   },
   "type": "module"
 }

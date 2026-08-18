@@ -71,6 +71,8 @@ export type MediaAsset = {
   key: string;
   url: string;
   filename: string;
+  mimeType?: string;
+  size?: number;
   category: MediaCategory;
   caption: string;
   photographer: string;
@@ -173,6 +175,72 @@ export const defaultPortfolio: PortfolioData = {
 
 export function mediaUrl(key: string) {
   return `/api/media?key=${encodeURIComponent(key)}`;
+}
+
+export function toPublicPortfolio(data: PortfolioData): PortfolioData {
+  const publicMedia = data.media.filter((asset) => asset.public);
+  const visibility = data.profile.visibility;
+  const profile: Profile = {
+    ...data.profile,
+    age: visibility.age ? data.profile.age : "",
+    city: visibility.location ? data.profile.city : "",
+    country: visibility.location ? data.profile.country : "",
+    email: visibility.email ? data.profile.email : "",
+    phone: visibility.phone ? data.profile.phone : "",
+    instagram: visibility.instagram ? data.profile.instagram : "",
+    tiktok: "",
+    website: "",
+    agency: visibility.agency ? data.profile.agency : "",
+    bookingContact: "",
+    height: visibility.measurements ? data.profile.height : "",
+    bust: visibility.measurements ? data.profile.bust : "",
+    waist: visibility.measurements ? data.profile.waist : "",
+    hips: visibility.measurements ? data.profile.hips : "",
+    dressSize: visibility.measurements ? data.profile.dressSize : "",
+    shoeSize: visibility.measurements ? data.profile.shoeSize : "",
+    hair: visibility.measurements ? data.profile.hair : "",
+    eyes: visibility.measurements ? data.profile.eyes : "",
+    ethnicity: "",
+    languages: visibility.languages ? data.profile.languages : "",
+    citizenship: "",
+    travelAvailability: visibility.availability ? data.profile.travelAvailability : "",
+    workAuthorization: "",
+  };
+  const publicHero = publicMedia.some((asset) => asset.id === data.settings.heroMediaId)
+    ? data.settings.heroMediaId
+    : publicMedia.find((asset) => asset.featured)?.id ?? "";
+  return {
+    profile,
+    credits: data.credits
+      .filter((credit) => credit.public && credit.priority !== "hidden")
+      .map((credit) => ({ ...credit, venue: "", notes: "", designerBase: "" })),
+    media: publicMedia,
+    videos: data.videos.filter((video) => video.public),
+    settings: { ...data.settings, heroMediaId: publicHero },
+  };
+}
+
+export function isPortfolioData(value: unknown): value is PortfolioData {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<PortfolioData>;
+  return Boolean(
+    candidate.profile &&
+    typeof candidate.profile === "object" &&
+    typeof candidate.profile.fullName === "string" &&
+    typeof candidate.profile.professionalName === "string" &&
+    candidate.profile.visibility &&
+    typeof candidate.profile.visibility === "object" &&
+    candidate.settings &&
+    typeof candidate.settings === "object" &&
+    typeof candidate.settings.heroMediaId === "string" &&
+    typeof candidate.settings.publicSite === "boolean" &&
+    Array.isArray(candidate.settings.selectedServices) &&
+    Array.isArray(candidate.credits) &&
+    candidate.credits.every((credit) => Boolean(credit && typeof credit.id === "string" && typeof credit.public === "boolean")) &&
+    Array.isArray(candidate.media) &&
+    candidate.media.every((asset) => Boolean(asset && typeof asset.id === "string" && typeof asset.key === "string" && typeof asset.public === "boolean")) &&
+    Array.isArray(candidate.videos),
+  );
 }
 
 export function instagramHandle(url: string) {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { upload as uploadBlob } from "@vercel/blob/client";
+import { useMemo, useRef, useState } from "react";
 import {
-  defaultPortfolio,
   portfolioWarnings,
   serviceOptions,
   type Credit,
@@ -29,23 +29,11 @@ const sections: { id: StudioSection; label: string; marker: string }[] = [
 
 const mediaCategories: MediaCategory[] = ["runway", "editorial", "beauty", "digitals", "headshot", "full-body", "campaign", "lookbook", "behind-the-scenes"];
 
-export function PortfolioStudio() {
+export function PortfolioStudio({ initialData }: { initialData: PortfolioData }) {
   const [section, setSection] = useState<StudioSection>("overview");
-  const [data, setData] = useState<PortfolioData>(defaultPortfolio);
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState("Loading portfolio…");
+  const [data, setData] = useState<PortfolioData>(initialData);
+  const [status, setStatus] = useState("Draft loaded");
   const [mobileNav, setMobileNav] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/portfolio")
-      .then((response) => response.json())
-      .then((payload) => {
-        if (payload.portfolio) setData(payload.portfolio);
-        setStatus("Draft loaded");
-      })
-      .catch(() => setStatus("Working from a local draft"))
-      .finally(() => setLoading(false));
-  }, []);
 
   const warnings = useMemo(() => portfolioWarnings(data), [data]);
 
@@ -86,8 +74,7 @@ export function PortfolioStudio() {
           </div>
         </header>
         <div className="studio-content">
-          {loading ? <div className="studio-loading">Preparing your studio…</div> : (
-            <>
+          <>
               {section === "overview" && <Overview data={data} warnings={warnings} navigate={setSection} />}
               {section === "profile" && <ProfileEditor data={data} setData={setData} />}
               {section === "measurements" && <MeasurementsEditor data={data} setData={setData} />}
@@ -99,8 +86,7 @@ export function PortfolioStudio() {
               {section !== "overview" && section !== "exports" && (
                 <div className="save-bar"><span>{status}</span><button className="button dark" onClick={() => save(false)}>Save draft</button></div>
               )}
-            </>
-          )}
+          </>
         </div>
       </div>
     </main>
@@ -171,18 +157,24 @@ function MediaEditor({ data, setData }: EditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   async function upload(files: FileList | File[]) {
     setUploading(true);
-    for (const file of Array.from(files)) {
-      const form = new FormData(); form.append("file", file);
-      const response = await fetch("/api/media", { method: "POST", body: form });
-      if (!response.ok) continue;
-      const payload = await response.json();
-      const asset: MediaAsset = { id: crypto.randomUUID(), key: payload.key, url: payload.url, filename: payload.filename, category, caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: false, focalPoint: "center" };
-      setData((current) => ({ ...current, media: [...current.media, asset] }));
+    try {
+      for (const file of Array.from(files)) {
+        const blob = await uploadBlob(`portfolio/${file.name}`, file, {
+          access: "private",
+          handleUploadUrl: "/api/media/upload",
+        });
+        const key = blob.pathname;
+        const asset: MediaAsset = { id: crypto.randomUUID(), key, url: `/api/media?key=${encodeURIComponent(key)}`, filename: file.name, mimeType: file.type, size: file.size, category, caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: false, focalPoint: "center" };
+        setData((current) => ({ ...current, media: [...current.media, asset] }));
+      }
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
     }
-    setUploading(false);
   }
   const update = (id: string, patch: Partial<MediaAsset>) => setData({ ...data, media: data.media.map((asset) => asset.id === id ? { ...asset, ...patch } : asset) });
-  async function remove(asset: MediaAsset) { await fetch(`/api/media?key=${encodeURIComponent(asset.key)}`, { method: "DELETE" }); setData({ ...data, media: data.media.filter((item) => item.id !== asset.id), settings: { ...data.settings, heroMediaId: data.settings.heroMediaId === asset.id ? "" : data.settings.heroMediaId } }); }
+  async function remove(asset: MediaAsset) { const response = await fetch(`/api/media?key=${encodeURIComponent(asset.key)}`, { method: "DELETE" }); if (response.ok) setData({ ...data, media: data.media.filter((item) => item.id !== asset.id), settings: { ...data.settings, heroMediaId: data.settings.heroMediaId === asset.id ? "" : data.settings.heroMediaId } }); else window.alert("The media item could not be deleted."); }
   return (
     <div><SectionIntro eyebrow="Image-first curation" title="Media library" copy="Upload original portfolio assets, classify them, and control which images appear publicly or in submission exports." /><div className="upload-controls"><label className="field"><span>Upload category</span><select value={category} onChange={(event) => setCategory(event.target.value as MediaCategory)}>{mediaCategories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><div className="drop-zone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); upload(event.dataTransfer.files); }}><input ref={inputRef} type="file" accept="image/*,video/*" multiple onChange={(event) => event.target.files && upload(event.target.files)} /><span>{uploading ? "Uploading…" : "Drop files here or"}</span><button className="button outline" disabled={uploading} onClick={() => inputRef.current?.click()}>Choose files</button><small>JPG, PNG, WebP, MP4 · up to 50 MB each</small></div></div>{!data.media.length && <EmptyState title="Your media library is empty" copy="Begin with one strong runway hero, then add editorial, beauty, and natural digitals." action="Choose first image" onAction={() => inputRef.current?.click()} />}{data.media.length > 0 && <div className="asset-grid">{data.media.map((asset) => <article className="asset-card" key={asset.id}><div className="asset-image"><img src={asset.url} alt="" style={{ objectPosition: asset.focalPoint }} />{data.settings.heroMediaId === asset.id && <span>Hero</span>}</div><div className="asset-fields"><p>{asset.filename}</p><div className="form-grid two compact"><label className="field"><span>Category</span><select value={asset.category} onChange={(event) => update(asset.id, { category: event.target.value as MediaCategory })}>{mediaCategories.map((item) => <option key={item}>{item}</option>)}</select></label><label className="field"><span>Focal point</span><select value={asset.focalPoint} onChange={(event) => update(asset.id, { focalPoint: event.target.value as MediaAsset["focalPoint"] })}><option>center</option><option>top</option><option>bottom</option></select></label><Field label="Caption" value={asset.caption} onChange={(v) => update(asset.id, { caption: v })} /><Field label="Photographer" value={asset.photographer} onChange={(v) => update(asset.id, { photographer: v })} /></div><div className="asset-actions"><button onClick={() => setData({ ...data, settings: { ...data.settings, heroMediaId: asset.id } })}>Set as hero</button><button onClick={() => update(asset.id, { featured: !asset.featured })}>{asset.featured ? "★ Featured" : "☆ Feature"}</button><button onClick={() => update(asset.id, { public: !asset.public })}>{asset.public ? "Public" : "Private"}</button><button className="danger" onClick={() => remove(asset)}>Delete</button></div></div></article>)}</div>}</div>
   );
@@ -200,7 +192,7 @@ function SettingsEditor({ data, setData }: EditorProps) {
 
 function ExportsPanel({ warnings }: { warnings: string[] }) {
   const exports = [{ type: "portfolio", title: "Portfolio PDF", copy: "Dynamic 10–15 page editorial book; empty sections are omitted." }, { type: "comp-card", title: "One-page comp card", copy: "Agency-style front and reverse layout with selected images and statistics." }, { type: "credits", title: "Runway credits sheet", copy: "Clean, verified experience record sorted in Emma’s chosen order." }, { type: "digitals", title: "Digital package", copy: "Natural headshot, profile, and full-body image presentation." }, { type: "dubai", title: "Dubai model submission", copy: "Runway-led international package for Dubai agencies, designers, and castings." }];
-  return <div><SectionIntro eyebrow="Submission suite" title="Export studio" copy="Open a print-ready preview, then use Save as PDF in the print dialog. Only completed content is included." />{warnings.length > 0 && <div className="export-warning"><b>{warnings.length} readiness note{warnings.length === 1 ? "" : "s"}</b><span>Exports remain available, but review the Overview before sending.</span></div>}<div className="export-grid">{exports.map((item) => <article key={item.type} className={item.type === "dubai" ? "featured-export" : ""}><span>{item.type === "dubai" ? "International" : "Document"}</span><h2>{item.title}</h2><p>{item.copy}</p><a className="button outline" href={`/exports?type=${item.type}`} target="_blank">Open print preview ↗</a></article>)}</div></div>;
+  return <div><SectionIntro eyebrow="Submission suite" title="Export studio" copy="Open a print-ready preview, then use Save as PDF in the print dialog. Only completed content is included." />{warnings.length > 0 && <div className="export-warning"><b>{warnings.length} readiness note{warnings.length === 1 ? "" : "s"}</b><span>Exports remain available, but review the Overview before sending.</span></div>}<div className="export-grid">{exports.map((item) => <article key={item.type} className={item.type === "dubai" ? "featured-export" : ""}><span>{item.type === "dubai" ? "International" : "Document"}</span><h2>{item.title}</h2><p>{item.copy}</p><a className="button outline" href={`/exports?type=${item.type}`} target="_blank" rel="noreferrer">Open print preview ↗</a></article>)}</div></div>;
 }
 
 function Field({ label, value, onChange, placeholder = "", type = "text", required = false }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: string; required?: boolean }) {

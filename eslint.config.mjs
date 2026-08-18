@@ -35,6 +35,12 @@ const eslintConfig = defineConfig([
         version: "detect",
       },
     },
+    rules: {
+      // Runway clips are owner-supplied and may not include a caption file yet.
+      "jsx-a11y/media-has-caption": "off",
+      // Protected media is streamed through an authenticated route and uses owner-defined crops.
+      "@next/next/no-img-element": "off",
+    },
   },
 ]);
 
