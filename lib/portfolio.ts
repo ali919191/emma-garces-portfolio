@@ -1,3 +1,5 @@
+import { isValidMediaKey } from "./media-access";
+
 export type VisibilityKey =
   | "age"
   | "location"
@@ -235,7 +237,12 @@ export function selectCompCardAssets(media: MediaAsset[], settings: PortfolioSet
 }
 
 export function mediaUrl(key: string) {
+  if (!isValidMediaKey(key)) return "";
   return `/api/media?key=${encodeURIComponent(key)}`;
+}
+
+export function publicAssetSrc(asset: Pick<MediaAsset, "key" | "url">) {
+  return mediaUrl(asset.key) || asset.url;
 }
 
 export function nextHeroMediaId(currentHeroId: string, assetId: string) {
@@ -281,7 +288,7 @@ export function toPublicPortfolio(data: PortfolioData): PortfolioData {
     credits: data.credits
       .filter((credit) => credit.public && credit.priority !== "hidden")
       .map((credit) => ({ ...credit, venue: "", notes: "", designerBase: "" })),
-    media: publicMedia,
+    media: publicMedia.map((asset) => ({ ...asset, url: "" })),
     videos: data.videos.filter((video) => video.public),
     settings: {
       ...settings,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultPortfolio, isPortfolioData, nextHeroMediaId, toPublicPortfolio } from "../lib/portfolio";
+import { defaultPortfolio, isPortfolioData, mediaUrl, nextHeroMediaId, publicAssetSrc, toPublicPortfolio } from "../lib/portfolio";
 
 describe("portfolio data policy", () => {
   it("filters private records and replaces an inaccessible hero", () => {
@@ -21,6 +21,8 @@ describe("portfolio data policy", () => {
 
     const result = toPublicPortfolio(source);
     expect(result.media.map((asset) => asset.id)).toEqual(["public"]);
+    expect(result.media[0].url).toBe("");
+    expect(JSON.stringify(result.media)).not.toContain("/api/media");
     expect(result.settings.heroMediaId).toBe("public");
     expect(result.credits).toHaveLength(1);
     expect(result.credits[0]).toMatchObject({ id: "visible", venue: "", notes: "", designerBase: "" });
@@ -68,5 +70,18 @@ describe("portfolio data policy", () => {
     expect(result.settings.primaryMarket).toBe("New York");
     expect(result.profile.tiktok).toBe("");
     expect(result.profile.website).toBe("");
+  });
+
+  it("does not generate media URLs from malformed keys", () => {
+    expect(mediaUrl("portfolio/look.jpeg")).toBe("/api/media?key=portfolio%2Flook.jpeg");
+    expect(mediaUrl("portfolio/look.jpeg\\")).toBe("");
+    expect(mediaUrl('portfolio/"look.jpeg')).toBe("");
+    expect(publicAssetSrc({ key: "portfolio/look.jpeg", url: "" })).toBe("/api/media?key=portfolio%2Flook.jpeg");
+    expect(publicAssetSrc({ key: "bad\\key", url: "/fallback.jpg" })).toBe("/fallback.jpg");
+    const nested = JSON.stringify(JSON.stringify({ media: toPublicPortfolio({
+      ...structuredClone(defaultPortfolio),
+      media: [{ id: "public", key: "portfolio/look.jpeg", url: mediaUrl("portfolio/look.jpeg"), filename: "look.jpeg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, focalPoint: "center" }],
+    }).media }));
+    expect(nested).not.toMatch(/\/api\/media\?key=[^"]*\\\\/);
   });
 });

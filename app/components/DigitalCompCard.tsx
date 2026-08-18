@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { availabilityLabels, instagramHandle, selectCompCardAssets, siteUrl, type PortfolioData } from "../../lib/portfolio";
+import { availabilityLabels, instagramHandle, publicAssetSrc, selectCompCardAssets, siteUrl, type PortfolioData } from "../../lib/portfolio";
 import { analyticsEvents, trackEvent } from "../../lib/analytics";
 
 export function DigitalCompCard({ data, preview = false }: { data: PortfolioData; preview?: boolean }) {
@@ -33,7 +33,7 @@ export function DigitalCompCard({ data, preview = false }: { data: PortfolioData
       )}
       <article className="comp-screen">
         <figure className="comp-hero">
-          {primary ? <img src={primary.url} alt={primary.caption || `${p.professionalName || p.fullName} headshot`} style={{ objectPosition: primary.focalPoint }} /> : <div className="hero-monogram" aria-hidden="true">E<span>G</span></div>}
+          {primary ? <img src={publicAssetSrc(primary)} alt={primary.caption || `${p.professionalName || p.fullName} headshot`} style={{ objectPosition: primary.focalPoint }} /> : <div className="hero-monogram" aria-hidden="true">E<span>G</span></div>}
         </figure>
         <div className="comp-copy">
           <p>Digital Comp Card</p>
@@ -58,7 +58,7 @@ export function DigitalCompCard({ data, preview = false }: { data: PortfolioData
       {supporting.length > 0 && (
         <section className="comp-support">
           {supporting.map((asset) => (
-            <img key={asset.id} src={asset.url} alt={asset.caption || `${asset.category} portfolio photograph`} style={{ objectPosition: asset.focalPoint }} />
+            <img key={asset.id} src={publicAssetSrc(asset)} alt={asset.caption || `${asset.category} portfolio photograph`} style={{ objectPosition: asset.focalPoint }} />
           ))}
         </section>
       )}

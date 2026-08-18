@@ -1,7 +1,6 @@
 export const analyticsEvents = {
   portfolioView: "portfolio_view",
   galleryView: "gallery_view",
-  portfolioImageView: "portfolio_image_view",
   bookingCtaClick: "booking_cta_click",
   bookingFormStart: "booking_form_start",
   bookingInquirySubmitted: "booking_inquiry_submitted",

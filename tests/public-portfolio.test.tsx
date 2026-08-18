@@ -28,8 +28,9 @@ describe("public portfolio rendering", () => {
 
     const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(source)} />);
     expect(html).toContain("hero has-image");
-    expect(html).toContain('src="/featured.jpg"');
+    expect(html).toContain('src="/api/media?key=featured.jpg"');
     expect(html).not.toContain("hero-monogram");
+    expect(JSON.stringify(toPublicPortfolio(source).media)).not.toContain("/api/media");
   });
 
   it("shows the monogram placeholder when no explicit hero or featured public image exists", () => {
@@ -43,5 +44,6 @@ describe("public portfolio rendering", () => {
     expect(html).toContain("hero editorial-placeholder");
     expect(html).toContain("hero-monogram");
     expect(html).not.toContain("hero-image");
+    expect(html).not.toMatch(/\/api\/media\?key=[^"']*\\/);
   });
 });

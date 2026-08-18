@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { instagramHandle, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { instagramHandle, publicAssetSrc, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
 import { analyticsEvents, trackEvent } from "../../lib/analytics";
 import { HarftAttribution } from "./HarftAttribution";
 
 const groups = ["runway", "editorial", "beauty", "digitals"] as const;
 
 function AssetImage({ asset, className = "", priority = false }: { asset: MediaAsset; className?: string; priority?: boolean }) {
-  return <img className={className} src={asset.url} alt={asset.caption || `${asset.category} portfolio photograph`} style={{ objectPosition: asset.focalPoint }} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} />;
+  return <img className={className} src={publicAssetSrc(asset)} alt={asset.caption || `${asset.category} portfolio photograph`} style={{ objectPosition: asset.focalPoint }} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} />;
 }
 
 export function PublicPortfolio({ initialData }: { initialData: PortfolioData }) {
