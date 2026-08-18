@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { adminEmails, isAdminEmail } from "../lib/auth";
+import { adminEmails, allowlistedEmailFrom, isAdminEmail } from "../lib/auth";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -10,5 +10,7 @@ describe("administrator allowlist", () => {
     expect(isAdminEmail("EMMA@example.com")).toBe(true);
     expect(isAdminEmail("stranger@example.com")).toBe(false);
     expect(isAdminEmail(null)).toBe(false);
+    expect(allowlistedEmailFrom([null, "other@example.com", "emma@example.com"])).toBe("emma@example.com");
+    expect(allowlistedEmailFrom([null, "hidden@users.noreply.github.com"])).toBeNull();
   });
 });
