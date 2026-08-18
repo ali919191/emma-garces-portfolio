@@ -18,4 +18,16 @@ describe("portfolio repository persistence contract", () => {
     expect(stored).toEqual(edited);
     expect(stored).not.toBe(edited);
   });
+
+  it("persists an unset hero as an empty heroMediaId", async () => {
+    vi.stubEnv("PORTFOLIO_DEMO_MODE", "true");
+    vi.stubEnv("NODE_ENV", "test");
+    const edited = structuredClone(defaultPortfolio);
+    edited.settings.heroMediaId = "asset-1";
+    await savePortfolio(edited);
+    edited.settings.heroMediaId = "";
+    await savePortfolio(edited);
+    const stored = await readPortfolio();
+    expect(stored.settings.heroMediaId).toBe("");
+  });
 });

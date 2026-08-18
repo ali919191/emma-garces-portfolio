@@ -18,4 +18,30 @@ describe("public portfolio rendering", () => {
     expect(html).not.toContain("private@example.com");
     expect(html).not.toContain("+1 555 0100");
   });
+
+  it("falls back to a featured public image when the explicit hero is cleared", () => {
+    const source = structuredClone(defaultPortfolio);
+    source.settings.heroMediaId = "";
+    source.media = [
+      { id: "featured", key: "featured.jpg", url: "/featured.jpg", filename: "featured.jpg", category: "runway", caption: "Featured runway look", photographer: "", designer: "", event: "", date: "", featured: true, public: true, focalPoint: "center" },
+    ];
+
+    const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(source)} />);
+    expect(html).toContain("hero has-image");
+    expect(html).toContain('src="/featured.jpg"');
+    expect(html).not.toContain("hero-monogram");
+  });
+
+  it("shows the monogram placeholder when no explicit hero or featured public image exists", () => {
+    const source = structuredClone(defaultPortfolio);
+    source.settings.heroMediaId = "";
+    source.media = [
+      { id: "plain", key: "plain.jpg", url: "/plain.jpg", filename: "plain.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: true, focalPoint: "center" },
+    ];
+
+    const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(source)} />);
+    expect(html).toContain("hero editorial-placeholder");
+    expect(html).toContain("hero-monogram");
+    expect(html).not.toContain("hero-image");
+  });
 });

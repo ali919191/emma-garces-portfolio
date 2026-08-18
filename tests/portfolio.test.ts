@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultPortfolio, isPortfolioData, toPublicPortfolio } from "../lib/portfolio";
+import { defaultPortfolio, isPortfolioData, nextHeroMediaId, toPublicPortfolio } from "../lib/portfolio";
 
 describe("portfolio data policy", () => {
   it("filters private records and replaces an inaccessible hero", () => {
@@ -33,5 +33,25 @@ describe("portfolio data policy", () => {
   it("rejects malformed API payloads", () => {
     expect(isPortfolioData(defaultPortfolio)).toBe(true);
     expect(isPortfolioData({ profile: {}, credits: [], media: [], videos: [], settings: {} })).toBe(false);
+  });
+
+  it("toggles explicit hero selection without auto-assigning another asset", () => {
+    expect(nextHeroMediaId("", "one")).toBe("one");
+    expect(nextHeroMediaId("one", "two")).toBe("two");
+    expect(nextHeroMediaId("two", "two")).toBe("");
+  });
+
+  it("keeps an empty explicit hero empty and uses featured only as public fallback", () => {
+    const source = structuredClone(defaultPortfolio);
+    source.settings.heroMediaId = "";
+    source.media = [
+      { id: "previous", key: "previous.jpg", url: "/previous", filename: "previous.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: true, focalPoint: "center" },
+      { id: "featured", key: "featured.jpg", url: "/featured", filename: "featured.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, focalPoint: "center" },
+    ];
+
+    expect(toPublicPortfolio(source).settings.heroMediaId).toBe("featured");
+
+    source.media = source.media.map((asset) => ({ ...asset, featured: false }));
+    expect(toPublicPortfolio(source).settings.heroMediaId).toBe("");
   });
 });

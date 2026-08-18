@@ -177,6 +177,10 @@ export function mediaUrl(key: string) {
   return `/api/media?key=${encodeURIComponent(key)}`;
 }
 
+export function nextHeroMediaId(currentHeroId: string, assetId: string) {
+  return currentHeroId === assetId ? "" : assetId;
+}
+
 export function toPublicPortfolio(data: PortfolioData): PortfolioData {
   const publicMedia = data.media.filter((asset) => asset.public);
   const visibility = data.profile.visibility;
