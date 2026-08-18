@@ -49,6 +49,49 @@ Sign in at `/studio` with the allowlisted GitHub account. The sidebar preserves 
 
 Uploads begin as private. Mark an asset public only when it is approved for the public portfolio, select the strongest approved image as the hero, save, and verify the signed-out homepage before sharing it.
 
+## Phase 1 — professional talent platform
+
+The public site remains Emma’s editorial portfolio. Phase 1 adds booking, availability, a public digital comp card, HARFT AI attribution, SEO, and a privacy-conscious analytics foundation.
+
+### Public routes
+
+- `/` — portfolio homepage
+- `/book` — Book Emma inquiry form
+- `/comp-card` — digital comp card with print/download
+- `/studio`, `/exports`, `/auth`, `/api` — not indexed
+
+### Booking inquiries
+
+Public submissions go to `POST /api/inquiries` with client and server validation, a honeypot field, a minimum fill time, and a per-email rate limit. Legitimate inquiries are stored in PostgreSQL table `booking_inquiries`. They are never rendered on public pages. Studio → Inquiries lists them and allows status changes (`new`, `reviewing`, `responded`, `booked`, `closed`, `spam`) through authenticated `PATCH /api/inquiries/[id]`.
+
+### Comp card
+
+Emma chooses a primary image and up to eight supporting **public** media assets in Studio → Comp card. The public page reads current profile + media; it does not duplicate uploads. Print/Save PDF uses the browser print dialog. Private images cannot appear.
+
+### Availability
+
+Studio → Portfolio settings controls `Available for bookings`, `Limited availability`, or `Currently unavailable`, plus primary market, travel, additional markets, and a short public note. This is not a calendar.
+
+### Analytics
+
+Named events (`portfolio_view`, `booking_cta_click`, `booking_inquiry_submitted`, `comp_card_view`, and others) are sent to **Vercel Web Analytics** via the native `/_vercel/insights` script. Enable Web Analytics on the Vercel project. Inquiry counts are queryable in Studio from PostgreSQL. Page-view dashboards stay in Vercel Analytics; Phase 1 does not copy visitor analytics into a second database.
+
+Event properties never include names, emails, phones, or project descriptions.
+
+### HARFT AI attribution
+
+A footer credit uses the official HARFT AI logo files in `public/partners/` and links to https://harftai.com in a new tab. HARFT is not in the main navigation.
+
+### Database migration
+
+Apply `drizzle/0001_uneven_krista_starr.sql` (or `pnpm db:migrate`) against the existing Neon database before deploying Phase 1. It is additive: new `booking_inquiries` table and new nullable-default columns on `portfolio_settings`. It does not drop or rewrite existing portfolio rows. Do not rerun seed.
+
+No new environment variables are required. Keep using `SITE_URL`, `SITE_TITLE`, `SITE_DESCRIPTION`, and `SOCIAL_IMAGE_PATH` for SEO and sharing.
+
+### Phase 2 boundary (not built)
+
+Custom shareable collections, private agency/casting links, and the “Ask Emma’s Portfolio” assistant are intentionally deferred. No AI SDK, embeddings, or vector database were added.
+
 ## GitHub OAuth
 
 Create a GitHub OAuth app with:

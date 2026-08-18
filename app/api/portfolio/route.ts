@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { readPortfolio, savePortfolio } from "../../../db/portfolio-repository";
 import { requireAdminApi } from "../../../lib/auth";
-import { isPortfolioData, toPublicPortfolio } from "../../../lib/portfolio";
+import { isPortfolioData, normalizeSettings, toPublicPortfolio } from "../../../lib/portfolio";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,8 +23,10 @@ export async function PUT(request: Request) {
     if (contentLength > 1_500_000) return Response.json({ error: "Portfolio metadata is too large." }, { status: 413 });
     const portfolio: unknown = await request.json();
     if (!isPortfolioData(portfolio)) return Response.json({ error: "Invalid portfolio data." }, { status: 400 });
-    await savePortfolio(portfolio);
+    await savePortfolio({ ...portfolio, settings: normalizeSettings(portfolio.settings) });
     revalidatePath("/");
+    revalidatePath("/book");
+    revalidatePath("/comp-card");
     revalidatePath("/studio");
     revalidatePath("/exports");
     return Response.json({ ok: true });

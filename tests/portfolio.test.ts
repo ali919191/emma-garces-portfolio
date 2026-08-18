@@ -54,4 +54,19 @@ describe("portfolio data policy", () => {
     source.media = source.media.map((asset) => ({ ...asset, featured: false }));
     expect(toPublicPortfolio(source).settings.heroMediaId).toBe("");
   });
+
+  it("keeps availability public and omits private social URLs", () => {
+    const source = structuredClone(defaultPortfolio);
+    source.settings.availabilityStatus = "limited";
+    source.settings.primaryMarket = "New York";
+    source.profile.tiktok = "https://tiktok.com/@private";
+    source.profile.website = "https://secret.example";
+    source.profile.visibility.tiktok = false;
+    source.profile.visibility.website = false;
+    const result = toPublicPortfolio(source);
+    expect(result.settings.availabilityStatus).toBe("limited");
+    expect(result.settings.primaryMarket).toBe("New York");
+    expect(result.profile.tiktok).toBe("");
+    expect(result.profile.website).toBe("");
+  });
 });

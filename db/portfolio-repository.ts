@@ -1,7 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { MediaCategory, PortfolioData, Profile } from "../lib/portfolio";
-import { defaultPortfolio, mediaUrl } from "../lib/portfolio";
+import { defaultPortfolio, mediaUrl, normalizeSettings } from "../lib/portfolio";
 import { getDb } from "./client";
 import { contentSections, mediaAssets, portfolioSettings, portfolioVideos, profiles, runwayCredits } from "./schema";
 
@@ -51,7 +51,7 @@ export async function readPortfolio(): Promise<PortfolioData> {
     citizenship: profileRow.citizenship,
     travelAvailability: profileRow.travelAvailability,
     workAuthorization: profileRow.workAuthorization,
-    visibility: profileRow.visibility,
+    visibility: { ...defaultPortfolio.profile.visibility, ...profileRow.visibility },
   } : defaultPortfolio.profile;
 
   return {
@@ -97,13 +97,20 @@ export async function readPortfolio(): Promise<PortfolioData> {
       primary: video.primary,
       public: video.isPublic,
     })),
-    settings: settingsRow ? {
+    settings: settingsRow ? normalizeSettings({
       heroMediaId: settingsRow.heroMediaId,
       publicSite: settingsRow.publicSite,
       baseLine: settingsRow.baseLine,
       selectedServices: settingsRow.selectedServices,
       lastPublishedAt: settingsRow.lastPublishedAt,
-    } : defaultPortfolio.settings,
+      availabilityStatus: settingsRow.availabilityStatus,
+      primaryMarket: settingsRow.primaryMarket,
+      travelAvailable: settingsRow.travelAvailable,
+      additionalMarkets: settingsRow.additionalMarkets,
+      availabilityNote: settingsRow.availabilityNote,
+      compCardPrimaryMediaId: settingsRow.compCardPrimaryMediaId,
+      compCardMediaIds: settingsRow.compCardMediaIds,
+    }) : defaultPortfolio.settings,
   };
 }
 
@@ -117,8 +124,8 @@ export async function savePortfolio(data: PortfolioData) {
   const writes: [BatchItem<"pg">, ...BatchItem<"pg">[]] = [
     db.insert(profiles).values({ id: 1, ...data.profile, updatedAt })
       .onConflictDoUpdate({ target: profiles.id, set: { ...data.profile, updatedAt } }),
-    db.insert(portfolioSettings).values({ id: 1, ...data.settings, updatedAt })
-      .onConflictDoUpdate({ target: portfolioSettings.id, set: { ...data.settings, updatedAt } }),
+    db.insert(portfolioSettings).values({ id: 1, ...normalizeSettings(data.settings), updatedAt })
+      .onConflictDoUpdate({ target: portfolioSettings.id, set: { ...normalizeSettings(data.settings), updatedAt } }),
     db.delete(runwayCredits),
     db.delete(mediaAssets),
     db.delete(portfolioVideos),

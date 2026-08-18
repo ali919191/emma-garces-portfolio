@@ -343,6 +343,21 @@ If `origin` already exists, inspect it first with `git remote -v`. Use `git remo
 10. Run typecheck, lint, tests, production build, and responsive browser QA after material changes.
 11. Do not claim production migration is complete until Neon, Blob, OAuth, Vercel, migrated data, and the deployed site have all been verified.
 
+## Phase 1 talent-platform additions
+
+Implemented on top of the migrated stack, without replacing Studio, media, or the public editorial layout:
+
+- Public `/book` inquiry form persisted to `booking_inquiries`
+- Studio Inquiries triage and status updates
+- Public `/comp-card` generated from current public profile/media
+- Studio Comp card image selection
+- Availability status on public homepage, edited in Studio settings
+- HARFT AI footer attribution using official logos in `public/partners/`
+- SEO: unique titles, sitemap, robots, JSON-LD Person/WebSite, noindex for Studio/auth/exports
+- Vercel Web Analytics event names; inquiry counts in Studio from PostgreSQL
+
+Apply additive migration `0001_uneven_krista_starr` before production deploy. Do not run seed. Do not implement Phase 2 collections, private casting links, or the HARFT-powered assistant.
+
 ## Repository state at handoff
 
 Before this memory file was added, the repository was clean on branch `main` at migration commit `1339eedb9f314b2d0b6c2548b206ec918ea81745`. This memory file is intended to be committed as a separate handoff commit. Use `git log -2 --oneline` on the receiving computer to confirm both commits arrived.

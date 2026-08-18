@@ -3,9 +3,11 @@
 import { upload as uploadBlob } from "@vercel/blob/client";
 import { useMemo, useRef, useState } from "react";
 import {
+  availabilityLabels,
+  nextHeroMediaId,
   portfolioWarnings,
   serviceOptions,
-  nextHeroMediaId,
+  type AvailabilityStatus,
   type Credit,
   type MediaAsset,
   type MediaCategory,
@@ -14,8 +16,10 @@ import {
   type Video,
   type VisibilityKey,
 } from "../../lib/portfolio";
+import { inquiryStatuses, type BookingInquiry, type InquiryStatus } from "../../lib/inquiries";
+import { DigitalCompCard } from "./DigitalCompCard";
 
-type StudioSection = "overview" | "profile" | "measurements" | "credits" | "media" | "videos" | "settings" | "exports";
+type StudioSection = "overview" | "inquiries" | "profile" | "measurements" | "credits" | "media" | "videos" | "comp-card" | "settings" | "exports";
 
 const sections: { id: StudioSection; label: string; marker: string }[] = [
   { id: "overview", label: "Overview", marker: "01" },
@@ -24,15 +28,18 @@ const sections: { id: StudioSection; label: string; marker: string }[] = [
   { id: "credits", label: "Runway credits", marker: "04" },
   { id: "media", label: "Media library", marker: "05" },
   { id: "videos", label: "Runway video", marker: "06" },
-  { id: "settings", label: "Portfolio settings", marker: "07" },
-  { id: "exports", label: "Export studio", marker: "08" },
+  { id: "comp-card", label: "Comp card", marker: "07" },
+  { id: "settings", label: "Portfolio settings", marker: "08" },
+  { id: "inquiries", label: "Inquiries", marker: "09" },
+  { id: "exports", label: "Export studio", marker: "10" },
 ];
 
 const mediaCategories: MediaCategory[] = ["runway", "editorial", "beauty", "digitals", "headshot", "full-body", "campaign", "lookbook", "behind-the-scenes"];
 
-export function PortfolioStudio({ initialData }: { initialData: PortfolioData }) {
+export function PortfolioStudio({ initialData, initialInquiries = [] }: { initialData: PortfolioData; initialInquiries?: BookingInquiry[] }) {
   const [section, setSection] = useState<StudioSection>("overview");
   const [data, setData] = useState<PortfolioData>(initialData);
+  const [inquiries, setInquiries] = useState<BookingInquiry[]>(initialInquiries);
   const [status, setStatus] = useState("Draft loaded");
   const [mobileNav, setMobileNav] = useState(false);
 
@@ -76,15 +83,17 @@ export function PortfolioStudio({ initialData }: { initialData: PortfolioData })
         </header>
         <div className="studio-content">
           <>
-              {section === "overview" && <Overview data={data} warnings={warnings} navigate={setSection} />}
+              {section === "overview" && <Overview data={data} warnings={warnings} inquiries={inquiries} navigate={setSection} />}
               {section === "profile" && <ProfileEditor data={data} setData={setData} />}
               {section === "measurements" && <MeasurementsEditor data={data} setData={setData} />}
               {section === "credits" && <CreditsEditor data={data} setData={setData} />}
               {section === "media" && <MediaEditor data={data} setData={setData} />}
               {section === "videos" && <VideosEditor data={data} setData={setData} />}
+              {section === "comp-card" && <CompCardEditor data={data} setData={setData} />}
               {section === "settings" && <SettingsEditor data={data} setData={setData} />}
+              {section === "inquiries" && <InquiriesEditor inquiries={inquiries} setInquiries={setInquiries} />}
               {section === "exports" && <ExportsPanel warnings={warnings} />}
-              {section !== "overview" && section !== "exports" && (
+              {section !== "overview" && section !== "exports" && section !== "inquiries" && (
                 <div className="save-bar"><span>{status}</span><button className="button dark" onClick={() => save(false)}>Save draft</button></div>
               )}
           </>
@@ -98,19 +107,21 @@ function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string
   return <div className="editor-heading"><p>{eyebrow}</p><h1>{title}</h1><span>{copy}</span></div>;
 }
 
-function Overview({ data, warnings, navigate }: { data: PortfolioData; warnings: string[]; navigate: (section: StudioSection) => void }) {
+function Overview({ data, warnings, inquiries, navigate }: { data: PortfolioData; warnings: string[]; inquiries: BookingInquiry[]; navigate: (section: StudioSection) => void }) {
   const completed = [Boolean(data.settings.heroMediaId), data.credits.length > 0, data.media.length >= 4, Boolean(data.profile.email || data.profile.instagram), Boolean(data.profile.height)].filter(Boolean).length;
+  const newCount = inquiries.filter((inquiry) => inquiry.status === "new").length;
   return (
     <div>
       <SectionIntro eyebrow="Portfolio readiness" title={`Good morning, ${data.profile.professionalName.split(" ")[0] || "Emma"}.`} copy="Complete the essentials first. Your public portfolio stays elegant while unfinished sections remain hidden." />
       <div className="overview-grid">
         <article className="readiness-card"><div className="progress-ring" style={{ "--progress": `${completed * 20}%` } as React.CSSProperties}><strong>{completed * 20}%</strong><span>ready</span></div><div><p>International package</p><h2>{completed < 5 ? "In curation" : "Ready to submit"}</h2><span>{5 - completed} essential item{5 - completed === 1 ? "" : "s"} remaining</span></div></article>
-        <article className="preview-card"><div><p>Public portfolio</p><h2>{data.profile.professionalName}</h2><span>International Runway Model</span></div><a href="/" target="_blank">Open preview ↗</a></article>
+        <article className="preview-card"><div><p>Public portfolio</p><h2>{data.profile.professionalName}</h2><span>{availabilityLabels[data.settings.availabilityStatus]}</span></div><a href="/" target="_blank">Open preview ↗</a></article>
       </div>
       <div className="overview-columns">
         <section className="panel"><div className="panel-title"><h2>Attention needed</h2><span>{warnings.length}</span></div>{warnings.length ? <div className="warning-list">{warnings.map((warning) => <button key={warning} onClick={() => navigate(warning.includes("image") ? "media" : warning.includes("credit") || warning.includes("NYFW") ? "credits" : "profile")}><i>!</i><span>{warning}</span><b>→</b></button>)}</div> : <p className="success-note">All essential portfolio checks pass.</p>}</section>
-        <section className="panel quick-actions"><div className="panel-title"><h2>Next moves</h2></div><button onClick={() => navigate("media")}><span>Upload portfolio images</span><b>→</b></button><button onClick={() => navigate("credits")}><span>Add verified runway credit</span><b>→</b></button><button onClick={() => navigate("exports")}><span>Prepare Dubai submission</span><b>→</b></button></section>
+        <section className="panel quick-actions"><div className="panel-title"><h2>Next moves</h2></div><button onClick={() => navigate("inquiries")}><span>{newCount} new booking inquir{newCount === 1 ? "y" : "ies"}</span><b>→</b></button><button onClick={() => navigate("media")}><span>Upload portfolio images</span><b>→</b></button><button onClick={() => navigate("comp-card")}><span>Review digital comp card</span><b>→</b></button></section>
       </div>
+      <p className="analytics-note">Page-view and outbound click metrics live in the Vercel Analytics dashboard. Studio shows booking inquiries stored in PostgreSQL, without copying visitor analytics into a second database.</p>
     </div>
   );
 }
@@ -124,7 +135,7 @@ function ProfileEditor({ data, setData }: EditorProps) {
       <div className="form-panel">
         <div className="form-grid two"><Field label="Full name" value={data.profile.fullName} onChange={(v) => update("fullName", v)} required /><Field label="Professional / model name" value={data.profile.professionalName} onChange={(v) => update("professionalName", v)} /><Field label="Age" value={data.profile.age} onChange={(v) => update("age", v)} placeholder="Optional" /><VisibilityToggle label="Show age publicly" checked={data.profile.visibility.age} onChange={() => toggle("age")} /><Field label="Current city" value={data.profile.city} onChange={(v) => update("city", v)} placeholder="Add city" /><Field label="Country" value={data.profile.country} onChange={(v) => update("country", v)} placeholder="Add country" /><Field label="Booking email" value={data.profile.email} onChange={(v) => update("email", v)} type="email" placeholder="Add professional email" /><Field label="Phone" value={data.profile.phone} onChange={(v) => update("phone", v)} placeholder="Optional" /><Field label="Instagram" value={data.profile.instagram} onChange={(v) => update("instagram", v)} type="url" /><Field label="TikTok" value={data.profile.tiktok} onChange={(v) => update("tiktok", v)} type="url" placeholder="Optional" /><Field label="Website" value={data.profile.website} onChange={(v) => update("website", v)} type="url" placeholder="Optional" /><Field label="Agency" value={data.profile.agency} onChange={(v) => update("agency", v)} placeholder="If represented" /><Field label="Booking contact" value={data.profile.bookingContact} onChange={(v) => update("bookingContact", v)} placeholder="Name or management contact" /><Field label="Languages" value={data.profile.languages} onChange={(v) => update("languages", v)} placeholder="Comma separated" /></div>
         <label className="field full"><span>Professional introduction</span><textarea value={data.profile.bio} onChange={(event) => update("bio", event.target.value)} placeholder="Write a concise, factual professional introduction in your own voice." rows={5} /><small>No exaggerated claims are generated automatically.</small></label>
-        <div className="visibility-box"><h3>Public display</h3><div>{(["location", "email", "phone", "instagram", "agency", "languages", "availability"] as VisibilityKey[]).map((key) => <VisibilityToggle key={key} label={`Show ${key}`} checked={data.profile.visibility[key]} onChange={() => toggle(key)} />)}</div></div>
+        <div className="visibility-box"><h3>Public display</h3><div>{(["location", "email", "phone", "instagram", "tiktok", "website", "agency", "languages", "availability"] as VisibilityKey[]).map((key) => <VisibilityToggle key={key} label={`Show ${key}`} checked={Boolean(data.profile.visibility[key])} onChange={() => toggle(key)} />)}</div></div>
       </div>
     </div>
   );
@@ -188,7 +199,107 @@ function VideosEditor({ data, setData }: EditorProps) {
 }
 
 function SettingsEditor({ data, setData }: EditorProps) {
-  return <div><SectionIntro eyebrow="Presentation controls" title="Portfolio settings" copy="Choose positioning, booking categories, and what is ready to share." /><div className="form-panel"><Field label="Cover supporting line" value={data.settings.baseLine} onChange={(v) => setData({ ...data, settings: { ...data.settings, baseLine: v } })} placeholder="USA Based | Available Internationally" /><div className="visibility-box"><h3>Selected booking categories</h3><div>{serviceOptions.map((service) => <VisibilityToggle key={service} label={service} checked={data.settings.selectedServices.includes(service)} onChange={() => setData({ ...data, settings: { ...data.settings, selectedServices: data.settings.selectedServices.includes(service) ? data.settings.selectedServices.filter((item) => item !== service) : [...data.settings.selectedServices, service] } })} />)}</div></div><VisibilityToggle label="Public portfolio enabled" checked={data.settings.publicSite} onChange={() => setData({ ...data, settings: { ...data.settings, publicSite: !data.settings.publicSite } })} /></div></div>;
+  const settings = data.settings;
+  const patch = (next: Partial<typeof settings>) => setData({ ...data, settings: { ...settings, ...next } });
+  return <div><SectionIntro eyebrow="Presentation controls" title="Portfolio settings" copy="Choose positioning, booking categories, and what is ready to share." /><div className="form-panel"><Field label="Cover supporting line" value={settings.baseLine} onChange={(v) => patch({ baseLine: v })} placeholder="USA Based | Available Internationally" /><div className="form-grid two"><label className="field"><span>Availability</span><select value={settings.availabilityStatus} onChange={(event) => patch({ availabilityStatus: event.target.value as AvailabilityStatus })}><option value="available">Available for bookings</option><option value="limited">Limited availability</option><option value="unavailable">Currently unavailable</option></select></label><Field label="Primary market" value={settings.primaryMarket} onChange={(v) => patch({ primaryMarket: v })} placeholder="e.g. New York" /><Field label="Additional markets" value={settings.additionalMarkets} onChange={(v) => patch({ additionalMarkets: v })} placeholder="Optional" /><Field label="Availability note" value={settings.availabilityNote} onChange={(v) => patch({ availabilityNote: v })} placeholder="Short public note only" /></div><VisibilityToggle label="Available to travel" checked={settings.travelAvailable} onChange={() => patch({ travelAvailable: !settings.travelAvailable })} /><div className="visibility-box"><h3>Selected booking categories</h3><div>{serviceOptions.map((service) => <VisibilityToggle key={service} label={service} checked={settings.selectedServices.includes(service)} onChange={() => patch({ selectedServices: settings.selectedServices.includes(service) ? settings.selectedServices.filter((item) => item !== service) : [...settings.selectedServices, service] })} />)}</div></div><VisibilityToggle label="Public portfolio enabled" checked={settings.publicSite} onChange={() => patch({ publicSite: !settings.publicSite })} /></div></div>;
+}
+
+function CompCardEditor({ data, setData }: EditorProps) {
+  const publicMedia = data.media.filter((asset) => asset.public);
+  const ids = data.settings.compCardMediaIds;
+  const toggle = (id: string) => {
+    const next = ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id].slice(0, 8);
+    setData({ ...data, settings: { ...data.settings, compCardMediaIds: next } });
+  };
+  return (
+    <div>
+      <SectionIntro eyebrow="Agency toolkit" title="Digital comp card" copy="Choose a primary image and up to eight supporting public images. The live card stays in sync with approved profile information." />
+      <div className="form-panel">
+        <label className="field"><span>Primary image</span>
+          <select value={data.settings.compCardPrimaryMediaId} onChange={(event) => setData({ ...data, settings: { ...data.settings, compCardPrimaryMediaId: event.target.value } })}>
+            <option value="">Use hero / featured fallback</option>
+            {publicMedia.map((asset) => <option key={asset.id} value={asset.id}>{asset.filename}</option>)}
+          </select>
+        </label>
+        <p className="analytics-note">Supporting images: {ids.length} / 8. Profile measurements and booking contacts follow the public visibility settings.</p>
+      </div>
+      <div className="asset-grid">
+        {publicMedia.map((asset) => (
+          <article className="asset-card" key={asset.id}>
+            <div className="asset-image"><img src={asset.url} alt="" style={{ objectPosition: asset.focalPoint }} />{data.settings.compCardPrimaryMediaId === asset.id && <span>Primary</span>}</div>
+            <div className="asset-fields">
+              <p>{asset.filename}</p>
+              <div className="asset-actions">
+                <button onClick={() => setData({ ...data, settings: { ...data.settings, compCardPrimaryMediaId: data.settings.compCardPrimaryMediaId === asset.id ? "" : asset.id } })}>{data.settings.compCardPrimaryMediaId === asset.id ? "Remove primary" : "Set primary"}</button>
+                <button onClick={() => toggle(asset.id)}>{ids.includes(asset.id) ? "Selected" : "Add supporting"}</button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="comp-studio-preview"><DigitalCompCard data={data} preview /></div>
+    </div>
+  );
+}
+
+function InquiriesEditor({ inquiries, setInquiries }: { inquiries: BookingInquiry[]; setInquiries: React.Dispatch<React.SetStateAction<BookingInquiry[]>> }) {
+  const [openId, setOpenId] = useState(inquiries[0]?.id ?? "");
+  const selected = inquiries.find((inquiry) => inquiry.id === openId) ?? inquiries[0];
+  async function changeStatus(id: string, status: InquiryStatus) {
+    const response = await fetch(`/api/inquiries/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+    if (!response.ok) {
+      window.alert("The inquiry could not be updated.");
+      return;
+    }
+    const payload = await response.json() as { inquiry: BookingInquiry };
+    setInquiries((current) => current.map((item) => item.id === id ? payload.inquiry : item));
+  }
+  return (
+    <div>
+      <SectionIntro eyebrow="Bookings" title="Inquiries" copy="Triage professional booking requests. Private inquiry details never appear on the public site." />
+      {!inquiries.length && <EmptyState title="No inquiries yet" copy="New Book Emma submissions will appear here." action="Open booking page" onAction={() => window.open("/book", "_blank")} />}
+      {inquiries.length > 0 && (
+        <div className="inquiry-layout">
+          <div className="inquiry-list">
+            {inquiries.map((inquiry) => (
+              <button key={inquiry.id} className={selected?.id === inquiry.id ? "active" : ""} onClick={() => setOpenId(inquiry.id)}>
+                <b>{inquiry.contactName}</b>
+                <span>{inquiry.inquiryType} · {inquiry.status}</span>
+                <small>{new Date(inquiry.createdAt).toLocaleDateString()}</small>
+              </button>
+            ))}
+          </div>
+          {selected && (
+            <article className="inquiry-detail">
+              <header>
+                <div>
+                  <p>{selected.inquiryType}</p>
+                  <h2>{selected.contactName}</h2>
+                  <span>{selected.company || "Independent / unspecified"}</span>
+                </div>
+                <label className="field"><span>Status</span>
+                  <select value={selected.status} onChange={(event) => changeStatus(selected.id, event.target.value as InquiryStatus)}>
+                    {inquiryStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                </label>
+              </header>
+              <dl>
+                <div><dt>Email</dt><dd><a href={`mailto:${selected.email}`}>{selected.email}</a></dd></div>
+                {selected.phone && <div><dt>Phone</dt><dd>{selected.phone}</dd></div>}
+                {selected.preferredContact && <div><dt>Preferred contact</dt><dd>{selected.preferredContact}</dd></div>}
+                {selected.projectName && <div><dt>Project</dt><dd>{selected.projectName}</dd></div>}
+                {selected.proposedDates && <div><dt>Dates</dt><dd>{selected.proposedDates}</dd></div>}
+                {selected.location && <div><dt>Location</dt><dd>{selected.location}</dd></div>}
+                {selected.budgetRange && <div><dt>Budget</dt><dd>{selected.budgetRange}</dd></div>}
+                {selected.details && <div className="full"><dt>Details</dt><dd>{selected.details}</dd></div>}
+                <div><dt>Source</dt><dd>{[selected.source, selected.referrer, selected.utmSource, selected.utmCampaign].filter(Boolean).join(" · ") || "website"}</dd></div>
+              </dl>
+            </article>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ExportsPanel({ warnings }: { warnings: string[] }) {

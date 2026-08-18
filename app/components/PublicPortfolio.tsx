@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { instagramHandle, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { analyticsEvents, trackEvent } from "../../lib/analytics";
+import { HarftAttribution } from "./HarftAttribution";
 
 const groups = ["runway", "editorial", "beauty", "digitals"] as const;
 
@@ -21,6 +23,8 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
 
   const closeMenu = () => setMenuOpen(false);
 
+  useEffect(() => { void trackEvent(analyticsEvents.portfolioView); }, []);
+
   return (
     <main className="public-site">
       <header className={`public-header ${menuOpen ? "menu-open" : ""}`}>
@@ -30,6 +34,7 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
           {["Profile", "Runway", "Editorial", "Beauty", "Digitals", "Video", "Credits", "Contact"].map((item) => (
             <a key={item} href={`#${item.toLowerCase()}`} onClick={closeMenu}>{item}</a>
           ))}
+          <a href="/book" onClick={() => { closeMenu(); void trackEvent(analyticsEvents.bookingCtaClick, { location: "nav" }); }}>Book</a>
         </nav>
       </header>
 
@@ -41,6 +46,10 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
           <h1>{p.professionalName || p.fullName || "Emma Garces"}</h1>
           <p className="hero-role">International Runway Model</p>
           {data.settings.baseLine && <p className="hero-location">{data.settings.baseLine}</p>}
+          <div className="hero-actions">
+            <a href="/book" onClick={() => { void trackEvent(analyticsEvents.bookingCtaClick, { location: "hero" }); }}>Book Emma</a>
+            <a href="/comp-card">View Comp Card</a>
+          </div>
         </div>
         <a className="hero-scroll" href="#profile">View portfolio <span>↓</span></a>
       </section>
@@ -72,7 +81,7 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
           <h2>On the runway</h2>
           <p>Selected fashion-week and designer presentations.</p>
         </div>
-        <MediaMosaic assets={publicMedia.filter((asset) => asset.category === "runway")} emptyLabel="Runway selections are currently in curation." />
+        <MediaMosaic assets={publicMedia.filter((asset) => asset.category === "runway")} emptyLabel="Runway selections are currently in curation." gallery="runway" />
       </section>
 
       {groups.slice(1).map((group, index) => {
@@ -83,7 +92,7 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
               <p className="section-index">0{index + 3} / {group}</p>
               <h2>{group === "digitals" ? "Digitals / Polaroids" : group}</h2>
             </div>
-            <MediaMosaic assets={assets} emptyLabel={`${group[0].toUpperCase()}${group.slice(1)} selections are currently in curation.`} />
+            <MediaMosaic assets={assets} emptyLabel={`${group[0].toUpperCase()}${group.slice(1)} selections are currently in curation.`} gallery={group} />
           </section>
         );
       })}
@@ -117,7 +126,10 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
 
       <section className="availability section-pad">
         <p className="section-index">08 / Availability</p>
-        <h2>Available for<br /><em>international bookings.</em></h2>
+        <h2>{data.settings.availabilityStatus === "limited" ? <>Limited<br /><em>availability.</em></> : data.settings.availabilityStatus === "unavailable" ? <>Currently<br /><em>unavailable.</em></> : <>Available for<br /><em>bookings.</em></>}</h2>
+        <p className="availability-note">
+          {[data.settings.primaryMarket && `Primary market: ${data.settings.primaryMarket}`, data.settings.travelAvailable ? "Available to travel" : "", data.settings.additionalMarkets && `Also: ${data.settings.additionalMarkets}`, data.settings.availabilityNote].filter(Boolean).join(" · ")}
+        </p>
         <div className="service-line">{data.settings.selectedServices.map((service) => <span key={service}>{service}</span>)}</div>
       </section>
 
@@ -125,17 +137,25 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
         <p className="section-index light-index">Bookings &amp; enquiries</p>
         <h2>Let’s work<br />together.</h2>
         <div className="contact-links">
-          {p.visibility.email && p.email && <a href={`mailto:${p.email}`}>{p.email}</a>}
-          {p.visibility.instagram && p.instagram && <a href={p.instagram} target="_blank" rel="noreferrer">{instagramHandle(p.instagram)} ↗</a>}
-          {p.visibility.agency && p.agency && <span>{p.agency}</span>}
+          <a href="/book" onClick={() => { void trackEvent(analyticsEvents.bookingCtaClick, { location: "contact" }); }}>Book Emma</a>
+          <a href="/comp-card">View Comp Card</a>
+          {p.email && <a href={`mailto:${p.email}`}>{p.email}</a>}
+          {p.instagram && <a href={p.instagram} target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent(analyticsEvents.socialOutboundClick, { network: "instagram" }); }}>{instagramHandle(p.instagram)} ↗</a>}
+          {p.tiktok && <a href={p.tiktok} target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent(analyticsEvents.socialOutboundClick, { network: "tiktok" }); }}>TikTok ↗</a>}
+          {p.website && <a href={p.website} target="_blank" rel="noopener noreferrer" onClick={() => { void trackEvent(analyticsEvents.socialOutboundClick, { network: "website" }); }}>{p.website.replace(/^https?:\/\//, "")} ↗</a>}
+          {p.agency && <span>{p.agency}</span>}
         </div>
+        <HarftAttribution />
         <div className="footer-line"><span>© {new Date().getFullYear()} {p.professionalName || p.fullName}</span><a href="/studio">Portfolio studio</a></div>
       </footer>
     </main>
   );
 }
 
-function MediaMosaic({ assets, emptyLabel }: { assets: MediaAsset[]; emptyLabel: string }) {
+function MediaMosaic({ assets, emptyLabel, gallery }: { assets: MediaAsset[]; emptyLabel: string; gallery?: string }) {
+  useEffect(() => {
+    if (gallery && assets.length) trackEvent(analyticsEvents.galleryView, { gallery });
+  }, [assets.length, gallery]);
   if (!assets.length) return <div className="gallery-empty"><span>IMAGE SELECTION</span><p>{emptyLabel}</p></div>;
   return (
     <div className={`media-mosaic count-${Math.min(assets.length, 5)}`}>

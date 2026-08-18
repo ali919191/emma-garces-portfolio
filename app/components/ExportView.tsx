@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { instagramHandle, portfolioWarnings, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { instagramHandle, portfolioWarnings, selectCompCardAssets, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
 
 export type ExportType = "portfolio" | "comp-card" | "credits" | "digitals" | "dubai";
 
@@ -68,8 +68,8 @@ function PortfolioBook({ data, dubai = false }: { data: PortfolioData; dubai?: b
 }
 
 function CompCard({ data }: { data: PortfolioData }) {
-  const p = data.profile; const hero = data.media.find((asset) => asset.id === data.settings.heroMediaId); const selected = data.media.filter((asset) => asset.featured).slice(0, 8); const credits = data.credits.filter((credit) => credit.priority === "featured" && credit.verified).slice(0, 4);
-  return <div className="print-document comp-document"><section className="print-page comp-front"><ImageOrPlaceholder asset={hero} label="Comp card hero image" /><div className="comp-name"><h1>{p.professionalName || p.fullName}</h1><p>International Runway Model</p></div><div className="comp-stats">{[["Height", p.height], ["Bust", p.bust], ["Waist", p.waist], ["Hips", p.hips], ["Shoe", p.shoeSize]].filter(([, v]) => v).map(([l, v]) => <span key={l}><b>{l}</b>{v}</span>)}</div></section><section className="print-page comp-back"><header><h2>{p.professionalName || p.fullName}</h2><p>Selected portfolio</p></header><div className="comp-grid">{Array.from({ length: 8 }).map((_, index) => <ImageOrPlaceholder key={index} asset={selected[index]} label={`Selected image ${index + 1}`} />)}</div><div className="comp-credit-row">{credits.map((credit) => <span key={credit.id}>{credit.designer} · {credit.event}</span>)}</div><footer><span>{p.email || "Booking email to be added"}</span><span>{p.instagram ? instagramHandle(p.instagram) : "Instagram to be added"}</span></footer></section></div>;
+  const p = data.profile; const { primary: hero, supporting } = selectCompCardAssets(data.media, data.settings); const selected = supporting.slice(0, 8); const credits = data.credits.filter((credit) => credit.priority === "featured" && credit.verified).slice(0, 4);
+  return <div className="print-document comp-document"><section className="print-page comp-front"><ImageOrPlaceholder asset={hero} label="Comp card hero image" /><div className="comp-name"><h1>{p.professionalName || p.fullName}</h1><p>International Runway Model</p></div><div className="comp-stats">{[["Height", p.height], ["Bust", p.bust], ["Waist", p.waist], ["Hips", p.hips], ["Shoe", p.shoeSize], ["Hair", p.hair], ["Eyes", p.eyes]].filter(([, v]) => v).map(([l, v]) => <span key={l}><b>{l}</b>{v}</span>)}</div></section><section className="print-page comp-back"><header><h2>{p.professionalName || p.fullName}</h2><p>Selected portfolio</p></header><div className="comp-grid">{Array.from({ length: 8 }).map((_, index) => <ImageOrPlaceholder key={index} asset={selected[index]} label={`Selected image ${index + 1}`} />)}</div><div className="comp-credit-row">{credits.map((credit) => <span key={credit.id}>{credit.designer} · {credit.event}</span>)}</div><footer><span>{p.email || "Book Emma at emmagarces.com/book"}</span><span>{p.instagram ? instagramHandle(p.instagram) : ""}</span></footer></section></div>;
 }
 
 function CreditsSheet({ data }: { data: PortfolioData }) { return <div className="print-document"><CreditsPage data={data} /><ContactPage data={data} /></div>; }

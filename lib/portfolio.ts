@@ -4,10 +4,29 @@ export type VisibilityKey =
   | "email"
   | "phone"
   | "instagram"
+  | "tiktok"
+  | "website"
   | "agency"
   | "measurements"
   | "languages"
   | "availability";
+
+export type AvailabilityStatus = "available" | "limited" | "unavailable";
+
+export type PortfolioSettings = {
+  heroMediaId: string;
+  publicSite: boolean;
+  baseLine: string;
+  selectedServices: string[];
+  lastPublishedAt: string;
+  availabilityStatus: AvailabilityStatus;
+  primaryMarket: string;
+  travelAvailable: boolean;
+  additionalMarkets: string;
+  availabilityNote: string;
+  compCardPrimaryMediaId: string;
+  compCardMediaIds: string[];
+};
 
 export type Profile = {
   fullName: string;
@@ -99,13 +118,7 @@ export type PortfolioData = {
   credits: Credit[];
   media: MediaAsset[];
   videos: Video[];
-  settings: {
-    heroMediaId: string;
-    publicSite: boolean;
-    baseLine: string;
-    selectedServices: string[];
-    lastPublishedAt: string;
-  };
+  settings: PortfolioSettings;
 };
 
 export const serviceOptions = [
@@ -152,6 +165,8 @@ export const emptyProfile: Profile = {
     email: false,
     phone: false,
     instagram: true,
+    tiktok: false,
+    website: false,
     agency: false,
     measurements: false,
     languages: false,
@@ -170,8 +185,54 @@ export const defaultPortfolio: PortfolioData = {
     baseLine: "USA Based | Available Internationally",
     selectedServices: ["International Runway", "Fashion Week", "Designer Shows", "Editorial", "Campaigns", "Lookbooks"],
     lastPublishedAt: "",
+    availabilityStatus: "available",
+    primaryMarket: "",
+    travelAvailable: true,
+    additionalMarkets: "",
+    availabilityNote: "",
+    compCardPrimaryMediaId: "",
+    compCardMediaIds: [],
   },
 };
+
+export const availabilityLabels: Record<AvailabilityStatus, string> = {
+  available: "Available for bookings",
+  limited: "Limited availability",
+  unavailable: "Currently unavailable",
+};
+
+export function siteUrl() {
+  return (process.env.SITE_URL ?? "https://www.emmagarces.com").replace(/\/$/, "");
+}
+
+export function normalizeSettings(settings: Partial<PortfolioSettings> & Pick<PortfolioSettings, "heroMediaId" | "publicSite" | "selectedServices">): PortfolioSettings {
+  const ids = Array.isArray(settings.compCardMediaIds) ? settings.compCardMediaIds.filter((id): id is string => typeof id === "string" && Boolean(id)).slice(0, 8) : [];
+  const status = settings.availabilityStatus;
+  return {
+    heroMediaId: settings.heroMediaId,
+    publicSite: settings.publicSite,
+    baseLine: settings.baseLine ?? "",
+    selectedServices: settings.selectedServices,
+    lastPublishedAt: settings.lastPublishedAt ?? "",
+    availabilityStatus: status === "limited" || status === "unavailable" ? status : "available",
+    primaryMarket: settings.primaryMarket ?? "",
+    travelAvailable: settings.travelAvailable !== false,
+    additionalMarkets: settings.additionalMarkets ?? "",
+    availabilityNote: settings.availabilityNote ?? "",
+    compCardPrimaryMediaId: settings.compCardPrimaryMediaId ?? "",
+    compCardMediaIds: ids,
+  };
+}
+
+export function selectCompCardAssets(media: MediaAsset[], settings: PortfolioSettings) {
+  const byId = new Map(media.map((asset) => [asset.id, asset]));
+  const primary = byId.get(settings.compCardPrimaryMediaId) ?? byId.get(settings.heroMediaId) ?? media.find((asset) => asset.featured) ?? media[0];
+  const chosen = (settings.compCardMediaIds.length ? settings.compCardMediaIds : media.filter((asset) => asset.featured).map((asset) => asset.id))
+    .map((id) => byId.get(id))
+    .filter((asset): asset is MediaAsset => asset != null && asset.id !== primary?.id)
+    .slice(0, 8);
+  return { primary, supporting: chosen };
+}
 
 export function mediaUrl(key: string) {
   return `/api/media?key=${encodeURIComponent(key)}`;
@@ -192,8 +253,8 @@ export function toPublicPortfolio(data: PortfolioData): PortfolioData {
     email: visibility.email ? data.profile.email : "",
     phone: visibility.phone ? data.profile.phone : "",
     instagram: visibility.instagram ? data.profile.instagram : "",
-    tiktok: "",
-    website: "",
+    tiktok: visibility.tiktok ? data.profile.tiktok : "",
+    website: visibility.website ? data.profile.website : "",
     agency: visibility.agency ? data.profile.agency : "",
     bookingContact: "",
     height: visibility.measurements ? data.profile.height : "",
@@ -213,6 +274,8 @@ export function toPublicPortfolio(data: PortfolioData): PortfolioData {
   const publicHero = publicMedia.some((asset) => asset.id === data.settings.heroMediaId)
     ? data.settings.heroMediaId
     : publicMedia.find((asset) => asset.featured)?.id ?? "";
+  const settings = normalizeSettings(data.settings);
+  const publicIds = new Set(publicMedia.map((asset) => asset.id));
   return {
     profile,
     credits: data.credits
@@ -220,7 +283,12 @@ export function toPublicPortfolio(data: PortfolioData): PortfolioData {
       .map((credit) => ({ ...credit, venue: "", notes: "", designerBase: "" })),
     media: publicMedia,
     videos: data.videos.filter((video) => video.public),
-    settings: { ...data.settings, heroMediaId: publicHero },
+    settings: {
+      ...settings,
+      heroMediaId: publicHero,
+      compCardPrimaryMediaId: publicIds.has(settings.compCardPrimaryMediaId) ? settings.compCardPrimaryMediaId : "",
+      compCardMediaIds: settings.compCardMediaIds.filter((id) => publicIds.has(id)),
+    },
   };
 }
 
