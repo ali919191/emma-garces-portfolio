@@ -10,14 +10,19 @@ export function HarftAttribution({ tone = "dark", compact = false }: { tone?: "d
         href="https://harftai.com"
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={compact ? "Powered by HARFT AI" : undefined}
+        aria-label={compact ? "Powered by Intelligence" : undefined}
         onClick={() => { void trackEvent(analyticsEvents.harftOutboundClick, { destination: "harftai.com" }); }}
       >
-        <img src={src} alt="" width={compact ? 90 : 180} height={compact ? 20 : 40} aria-hidden="true" />
         {compact ? (
-          <span className="harft-powered">Powered by HARFT AI</span>
+          <>
+            <span className="harft-mark">
+              <img src={src} alt="" width={90} height={20} aria-hidden="true" />
+            </span>
+            <span className="harft-powered">Powered by Intelligence</span>
+          </>
         ) : (
           <>
+            <img src={src} alt="" width={180} height={40} aria-hidden="true" />
             <span>Digital Experience by HARFT AI</span>
             <small>Digital infrastructure for modern talent.</small>
             <em>Built with HARFT AI →</em>

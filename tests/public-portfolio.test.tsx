@@ -51,7 +51,7 @@ describe("public portfolio rendering", () => {
     const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(defaultPortfolio)} />);
 
     expect(html).toContain("harft-attribution light top");
-    expect(html).toContain("Powered by HARFT AI");
+    expect(html).toContain("Powered by Intelligence");
     expect(html).toContain("/partners/harft-ai-logo-on-light.svg");
     expect(html).toContain("/partners/harft-ai-logo-on-dark.svg");
     expect(html).toContain('href="https://harftai.com"');

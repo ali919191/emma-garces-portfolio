@@ -58,6 +58,7 @@ img { max-width: 100%; display: block; }
 .harft-attribution.light em { border-color: #b7b1a8; }
 .hero .harft-attribution.top { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); z-index: 5; margin: 0; max-width: none; }
 .hero .harft-attribution.top a { flex-direction: row; align-items: center; gap: 10px; color: rgba(247, 244, 239, .72); }
+.hero .harft-attribution.top .harft-mark { display: contents; }
 .hero .harft-attribution.top img { width: 108px; opacity: .9; }
 .hero .harft-attribution.top .harft-powered { font-size: 8px; letter-spacing: .18em; white-space: nowrap; color: rgba(247, 244, 239, .72); }
 .public-nav .nav-instagram { position: relative; }
@@ -367,9 +368,10 @@ img { max-width: 100%; display: block; }
   .public-nav .instagram-link { font-size: 28px; gap: 12px; }
   .public-nav .instagram-link svg { width: 22px; height: 22px; }
   .hero .harft-attribution.top { top: 84px; }
-  .hero .harft-attribution.top a { flex-direction: column; gap: 5px; }
-  .hero .harft-attribution.top img { width: 92px; }
-  .hero .harft-attribution.top .harft-powered { font-size: 7px; letter-spacing: .16em; }
+  .hero .harft-attribution.top a { display: grid; justify-items: center; justify-content: center; align-items: center; gap: 5px; width: max-content; text-align: center; }
+  .hero .harft-attribution.top .harft-mark { display: block; overflow: hidden; width: 73px; line-height: 0; }
+  .hero .harft-attribution.top img { width: 92px; max-width: none; margin: 0; }
+  .hero .harft-attribution.top .harft-powered { display: block; width: max-content; max-width: 100%; margin: 0; padding: 0; font-size: 7px; letter-spacing: .16em; text-align: center; }
   .hero-copy { left: 6vw; right: 6vw; bottom: 15vh; }
   .hero h1 { font-size: clamp(66px, 20vw, 110px); }
   .hero-scroll { left: 6vw; right: auto; }
