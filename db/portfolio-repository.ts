@@ -1,4 +1,5 @@
 import { asc, eq } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { MediaCategory, PortfolioData, Profile } from "../lib/portfolio";
 import { defaultPortfolio, mediaUrl } from "../lib/portfolio";
 import { getDb } from "./client";
@@ -112,17 +113,19 @@ export async function savePortfolio(data: PortfolioData) {
     return;
   }
   const db = getDb();
-  await db.transaction(async (tx) => {
-    await tx.insert(profiles).values({ id: 1, ...data.profile, updatedAt: new Date() })
-      .onConflictDoUpdate({ target: profiles.id, set: { ...data.profile, updatedAt: new Date() } });
-    await tx.insert(portfolioSettings).values({ id: 1, ...data.settings, updatedAt: new Date() })
-      .onConflictDoUpdate({ target: portfolioSettings.id, set: { ...data.settings, updatedAt: new Date() } });
+  const updatedAt = new Date();
+  const writes: [BatchItem<"pg">, ...BatchItem<"pg">[]] = [
+    db.insert(profiles).values({ id: 1, ...data.profile, updatedAt })
+      .onConflictDoUpdate({ target: profiles.id, set: { ...data.profile, updatedAt } }),
+    db.insert(portfolioSettings).values({ id: 1, ...data.settings, updatedAt })
+      .onConflictDoUpdate({ target: portfolioSettings.id, set: { ...data.settings, updatedAt } }),
+    db.delete(runwayCredits),
+    db.delete(mediaAssets),
+    db.delete(portfolioVideos),
+  ];
 
-    await tx.delete(runwayCredits);
-    await tx.delete(mediaAssets);
-    await tx.delete(portfolioVideos);
-
-    if (data.credits.length) await tx.insert(runwayCredits).values(data.credits.map((credit, sortOrder) => ({
+  if (data.credits.length) {
+    writes.push(db.insert(runwayCredits).values(data.credits.map((credit, sortOrder) => ({
       id: credit.id,
       event: credit.event,
       designer: credit.designer,
@@ -137,9 +140,11 @@ export async function savePortfolio(data: PortfolioData) {
       verified: credit.verified,
       isPublic: credit.public,
       sortOrder,
-      updatedAt: new Date(),
-    })));
-    if (data.media.length) await tx.insert(mediaAssets).values(data.media.map((asset, sortOrder) => ({
+      updatedAt,
+    }))));
+  }
+  if (data.media.length) {
+    writes.push(db.insert(mediaAssets).values(data.media.map((asset, sortOrder) => ({
       id: asset.id,
       storageKey: asset.key,
       filename: asset.filename,
@@ -155,9 +160,11 @@ export async function savePortfolio(data: PortfolioData) {
       isPublic: asset.public,
       focalPoint: asset.focalPoint,
       sortOrder,
-      updatedAt: new Date(),
-    })));
-    if (data.videos.length) await tx.insert(portfolioVideos).values(data.videos.map((video, sortOrder) => ({
+      updatedAt,
+    }))));
+  }
+  if (data.videos.length) {
+    writes.push(db.insert(portfolioVideos).values(data.videos.map((video, sortOrder) => ({
       id: video.id,
       url: video.url,
       label: video.label,
@@ -166,9 +173,11 @@ export async function savePortfolio(data: PortfolioData) {
       primary: video.primary,
       isPublic: video.public,
       sortOrder,
-      updatedAt: new Date(),
-    })));
-  });
+      updatedAt,
+    }))));
+  }
+
+  await db.batch(writes);
 }
 
 export async function findMedia(storageKey: string) {
