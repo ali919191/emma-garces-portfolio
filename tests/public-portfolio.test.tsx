@@ -23,7 +23,7 @@ describe("public portfolio rendering", () => {
     const source = structuredClone(defaultPortfolio);
     source.settings.heroMediaId = "";
     source.media = [
-      { id: "featured", key: "featured.jpg", url: "/featured.jpg", filename: "featured.jpg", category: "runway", caption: "Featured runway look", photographer: "", designer: "", event: "", date: "", featured: true, public: true, focalPoint: "center" },
+      { id: "featured", key: "featured.jpg", url: "/featured.jpg", filename: "featured.jpg", category: "runway", caption: "Featured runway look", photographer: "", designer: "", event: "", date: "", featured: true, public: true, minorEra: false, focalPoint: "center" },
     ];
 
     const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(source)} />);
@@ -37,7 +37,7 @@ describe("public portfolio rendering", () => {
     const source = structuredClone(defaultPortfolio);
     source.settings.heroMediaId = "";
     source.media = [
-      { id: "plain", key: "plain.jpg", url: "/plain.jpg", filename: "plain.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: true, focalPoint: "center" },
+      { id: "plain", key: "plain.jpg", url: "/plain.jpg", filename: "plain.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: true, minorEra: false, focalPoint: "center" },
     ];
 
     const html = renderToStaticMarkup(<PublicPortfolio initialData={toPublicPortfolio(source)} />);

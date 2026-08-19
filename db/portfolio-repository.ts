@@ -1,7 +1,7 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { MediaCategory, PortfolioData, Profile } from "../lib/portfolio";
-import { defaultPortfolio, mediaUrl, normalizeSettings } from "../lib/portfolio";
+import { defaultPortfolio, mediaUrl, normalizeSettings, normalizeStory, normalizeStoryContent } from "../lib/portfolio";
 import { getDb } from "./client";
 import { contentSections, mediaAssets, portfolioSettings, portfolioVideos, profiles, runwayCredits } from "./schema";
 
@@ -14,12 +14,13 @@ function demoMode() {
 export async function readPortfolio(): Promise<PortfolioData> {
   if (demoMode()) return structuredClone(demoPortfolio);
   const db = getDb();
-  const [profileRows, settingsRows, credits, assets, videos] = await Promise.all([
+  const [profileRows, settingsRows, credits, assets, videos, sections] = await Promise.all([
     db.select().from(profiles).where(eq(profiles.id, 1)).limit(1),
     db.select().from(portfolioSettings).where(eq(portfolioSettings.id, 1)).limit(1),
     db.select().from(runwayCredits).orderBy(asc(runwayCredits.sortOrder)),
     db.select().from(mediaAssets).orderBy(asc(mediaAssets.sortOrder)),
     db.select().from(portfolioVideos).orderBy(asc(portfolioVideos.sortOrder)),
+    db.select().from(contentSections).orderBy(asc(contentSections.sortOrder)),
   ]);
 
   const profileRow = profileRows[0];
@@ -86,6 +87,7 @@ export async function readPortfolio(): Promise<PortfolioData> {
       date: asset.date,
       featured: asset.featured,
       public: asset.isPublic,
+      minorEra: asset.minorEra,
       focalPoint: asset.focalPoint,
     })),
     videos: videos.map((video) => ({
@@ -97,6 +99,13 @@ export async function readPortfolio(): Promise<PortfolioData> {
       primary: video.primary,
       public: video.isPublic,
     })),
+    story: normalizeStory(sections.map((section) => ({
+      slug: section.slug,
+      title: section.title,
+      content: section.content,
+      public: section.isPublic,
+      sortOrder: section.sortOrder,
+    }))),
     settings: settingsRow ? normalizeSettings({
       heroMediaId: settingsRow.heroMediaId,
       publicSite: settingsRow.publicSite,
@@ -165,6 +174,7 @@ export async function savePortfolio(data: PortfolioData) {
       date: asset.date,
       featured: asset.featured,
       isPublic: asset.public,
+      minorEra: asset.minorEra === true,
       focalPoint: asset.focalPoint,
       sortOrder,
       updatedAt,
@@ -182,6 +192,30 @@ export async function savePortfolio(data: PortfolioData) {
       sortOrder,
       updatedAt,
     }))));
+  }
+  // Story sections are upserted by slug rather than replaced wholesale. Credits, media and
+  // videos are client-owned collections, but `content_sections` is a stable catalogue keyed
+  // by slug: never delete a row Studio simply did not send. Deletion is intentionally not
+  // supported in Phase 2A — a section is retired by clearing it and leaving it private.
+  const story = normalizeStory(data.story);
+  if (story.length) {
+    writes.push(db.insert(contentSections).values(story.map((section, sortOrder) => ({
+      slug: section.slug,
+      title: section.title,
+      content: normalizeStoryContent(section.content) as unknown as Record<string, unknown>,
+      isPublic: section.public,
+      sortOrder,
+      updatedAt,
+    }))).onConflictDoUpdate({
+      target: contentSections.slug,
+      set: {
+        title: sql`excluded.title`,
+        content: sql`excluded.content`,
+        isPublic: sql`excluded.is_public`,
+        sortOrder: sql`excluded.sort_order`,
+        updatedAt,
+      },
+    }));
   }
 
   await db.batch(writes);

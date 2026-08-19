@@ -103,6 +103,11 @@ export type MediaAsset = {
   featured: boolean;
   public: boolean;
   focalPoint: "center" | "top" | "bottom";
+  /**
+   * Marks material captured while Emma was a minor. Classification only — it never
+   * publishes or unpublishes anything on its own. See `minorEraPolicy`.
+   */
+  minorEra: boolean;
 };
 
 export type Video = {
@@ -115,12 +120,75 @@ export type Video = {
   public: boolean;
 };
 
+/**
+ * Controlled vocabulary for discrete, machine-readable facts inside a story section.
+ * Kept deliberately small: one flat fact list with a `kind` discriminator beats ten
+ * parallel arrays for maintainability, and later phases can filter by `kind`.
+ */
+export type StoryFactKind =
+  | "milestone"
+  | "designer"
+  | "show"
+  | "location"
+  | "education"
+  | "business"
+  | "technology"
+  | "award"
+  | "goal"
+  | "note";
+
+export const storyFactKinds: StoryFactKind[] = [
+  "milestone",
+  "designer",
+  "show",
+  "location",
+  "education",
+  "business",
+  "technology",
+  "award",
+  "goal",
+  "note",
+];
+
+export type StoryFact = {
+  id: string;
+  kind: StoryFactKind;
+  label: string;
+  value: string;
+  year: string;
+  location: string;
+};
+
+/**
+ * The JSONB payload stored in `content_sections.content`.
+ * `mediaIds` / `videoIds` / `creditIds` are lightweight references to the canonical
+ * records in `media_assets`, `portfolio_videos` and `runway_credits`. Referencing a
+ * record never copies it and never overrides its own visibility.
+ */
+export type StorySectionContent = {
+  summary: string;
+  body: string;
+  facts: StoryFact[];
+  mediaIds: string[];
+  videoIds: string[];
+  creditIds: string[];
+};
+
+export type StorySection = {
+  slug: string;
+  title: string;
+  content: StorySectionContent;
+  public: boolean;
+  sortOrder: number;
+};
+
 export type PortfolioData = {
   profile: Profile;
   credits: Credit[];
   media: MediaAsset[];
   videos: Video[];
   settings: PortfolioSettings;
+  story: StorySection[];
 };
 
 export const serviceOptions = [
@@ -181,6 +249,7 @@ export const defaultPortfolio: PortfolioData = {
   credits: [],
   media: [],
   videos: [],
+  story: [],
   settings: {
     heroMediaId: "",
     publicSite: true,
@@ -196,6 +265,150 @@ export const defaultPortfolio: PortfolioData = {
     compCardMediaIds: [],
   },
 };
+
+/**
+ * Canonical story sections. These slugs match the rows seeded into `content_sections`
+ * by `seedPortfolio()`; the titles match the titles that seed derives from each slug,
+ * so re-saving never churns an existing row. Studio renders this catalog so the editor
+ * works whether or not the production database was ever seeded.
+ */
+export const storySectionCatalog: { slug: string; title: string }[] = [
+  { slug: "about-emma", title: "About Emma" },
+  { slug: "modeling-journey", title: "Modeling Journey" },
+  { slug: "selected-archive", title: "Selected Archive" },
+  { slug: "selected-runway", title: "Selected Runway" },
+  { slug: "fashion-weeks", title: "Fashion Weeks" },
+  { slug: "designers", title: "Designers" },
+  { slug: "editorial", title: "Editorial" },
+  { slug: "campaigns", title: "Campaigns" },
+  { slug: "beauty", title: "Beauty" },
+  { slug: "dubai", title: "Dubai" },
+  { slug: "international-availability", title: "International Availability" },
+];
+
+export const emptyStoryContent: StorySectionContent = {
+  summary: "",
+  body: "",
+  facts: [],
+  mediaIds: [],
+  videoIds: [],
+  creditIds: [],
+};
+
+function stringList(value: unknown, limit = 200): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  for (const item of value) {
+    if (typeof item === "string" && item && !seen.has(item)) seen.add(item);
+    if (seen.size >= limit) break;
+  }
+  return [...seen];
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+export function normalizeStoryFact(value: unknown, index = 0): StoryFact {
+  const fact = (value ?? {}) as Partial<StoryFact>;
+  const kind = storyFactKinds.includes(fact.kind as StoryFactKind) ? (fact.kind as StoryFactKind) : "note";
+  return {
+    id: typeof fact.id === "string" && fact.id ? fact.id : `fact-${index}`,
+    kind,
+    label: text(fact.label),
+    value: text(fact.value),
+    year: text(fact.year),
+    location: text(fact.location),
+  };
+}
+
+/** Coerces whatever is in JSONB into a predictable shape. Never invents content. */
+export function normalizeStoryContent(value: unknown): StorySectionContent {
+  const content = (value ?? {}) as Partial<StorySectionContent>;
+  return {
+    summary: text(content.summary),
+    body: text(content.body),
+    facts: Array.isArray(content.facts) ? content.facts.slice(0, 200).map(normalizeStoryFact) : [],
+    mediaIds: stringList(content.mediaIds),
+    videoIds: stringList(content.videoIds),
+    creditIds: stringList(content.creditIds),
+  };
+}
+
+export function normalizeStorySection(value: unknown, index = 0): StorySection {
+  const section = (value ?? {}) as Partial<StorySection>;
+  const slug = typeof section.slug === "string" && section.slug ? section.slug : `section-${index}`;
+  return {
+    slug,
+    title: text(section.title) || storySectionCatalog.find((entry) => entry.slug === slug)?.title || slug,
+    content: normalizeStoryContent(section.content),
+    public: section.public === true,
+    sortOrder: typeof section.sortOrder === "number" && Number.isFinite(section.sortOrder) ? section.sortOrder : index,
+  };
+}
+
+export function normalizeStory(value: unknown): StorySection[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  return value
+    .map((section, index) => normalizeStorySection(section, index))
+    .filter((section) => (seen.has(section.slug) ? false : seen.add(section.slug) !== undefined))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+/**
+ * Presentation helper: returns every canonical section, backed by stored rows where they
+ * exist and blank placeholders where they do not, followed by any non-catalog sections
+ * already present in the database. Used by Studio so the editor never depends on seed state.
+ */
+export function mergeStoryCatalog(sections: StorySection[]): StorySection[] {
+  const stored = new Map(normalizeStory(sections).map((section) => [section.slug, section]));
+  const merged = storySectionCatalog.map((entry, index) => {
+    const existing = stored.get(entry.slug);
+    stored.delete(entry.slug);
+    return existing
+      ? { ...existing, title: existing.title || entry.title, sortOrder: index }
+      : { slug: entry.slug, title: entry.title, content: structuredClone(emptyStoryContent), public: false, sortOrder: index };
+  });
+  return [...merged, ...[...stored.values()].map((section, index) => ({ ...section, sortOrder: merged.length + index }))];
+}
+
+export function storySectionIsEmpty(section: StorySection) {
+  const { summary, body, facts, mediaIds, videoIds, creditIds } = section.content;
+  return !summary.trim() && !body.trim() && !facts.length && !mediaIds.length && !videoIds.length && !creditIds.length;
+}
+
+/**
+ * Minor-era classification boundary.
+ *
+ * Phase 2A establishes the durable flag only. It intentionally does NOT change
+ * visibility behaviour: `public` remains the single gate for publication, and nothing
+ * is auto-published or auto-hidden. Later phases must consult these helpers before
+ * running any inference, matching, or fit feature over Emma's media.
+ */
+export const minorEraPolicy = {
+  /** Later phases must not run biometric or pose analysis on minor-era material. */
+  allowBiometricAnalysis: false,
+  /** Later phases must not use minor-era material for casting/brand matching or fit. */
+  allowMatchingAndFit: false,
+  /** Later phases may derive only garment/scene descriptors, never personal inference. */
+  allowUnrestrictedInference: false,
+  /** Publication always stays a deliberate per-item decision by Emma in Studio. */
+  requiresDeliberatePublication: true,
+} as const;
+
+export function isMinorEraAsset(asset: Pick<MediaAsset, "minorEra">) {
+  return asset.minorEra === true;
+}
+
+export function minorEraAssetIds(media: Pick<MediaAsset, "id" | "minorEra">[]) {
+  return new Set(media.filter(isMinorEraAsset).map((asset) => asset.id));
+}
+
+/** Reusable exclusion for any future analysis pipeline. Not wired to anything in Phase 2A. */
+export function excludeMinorEraAssets<T extends Pick<MediaAsset, "minorEra">>(media: T[]) {
+  return media.filter((asset) => !isMinorEraAsset(asset));
+}
 
 export const availabilityLabels: Record<AvailabilityStatus, string> = {
   available: "Available for bookings",
@@ -283,13 +496,30 @@ export function toPublicPortfolio(data: PortfolioData): PortfolioData {
     : publicMedia.find((asset) => asset.featured)?.id ?? "";
   const settings = normalizeSettings(data.settings);
   const publicIds = new Set(publicMedia.map((asset) => asset.id));
+  const publicCredits = data.credits
+    .filter((credit) => credit.public && credit.priority !== "hidden")
+    .map((credit) => ({ ...credit, venue: "", notes: "", designerBase: "" }));
+  const publicVideos = data.videos.filter((video) => video.public);
+  const publicCreditIds = new Set(publicCredits.map((credit) => credit.id));
+  const publicVideoIds = new Set(publicVideos.map((video) => video.id));
   return {
     profile,
-    credits: data.credits
-      .filter((credit) => credit.public && credit.priority !== "hidden")
-      .map((credit) => ({ ...credit, venue: "", notes: "", designerBase: "" })),
+    credits: publicCredits,
     media: publicMedia.map((asset) => ({ ...asset, url: "" })),
-    videos: data.videos.filter((video) => video.public),
+    videos: publicVideos,
+    // A public story section may only reference records that are themselves public.
+    // Referencing a private asset never publishes it, and never leaks its existence.
+    story: normalizeStory(data.story)
+      .filter((section) => section.public)
+      .map((section) => ({
+        ...section,
+        content: {
+          ...section.content,
+          mediaIds: section.content.mediaIds.filter((id) => publicIds.has(id)),
+          videoIds: section.content.videoIds.filter((id) => publicVideoIds.has(id)),
+          creditIds: section.content.creditIds.filter((id) => publicCreditIds.has(id)),
+        },
+      })),
     settings: {
       ...settings,
       heroMediaId: publicHero,
@@ -318,7 +548,10 @@ export function isPortfolioData(value: unknown): value is PortfolioData {
     candidate.credits.every((credit) => Boolean(credit && typeof credit.id === "string" && typeof credit.public === "boolean")) &&
     Array.isArray(candidate.media) &&
     candidate.media.every((asset) => Boolean(asset && typeof asset.id === "string" && typeof asset.key === "string" && typeof asset.public === "boolean")) &&
-    Array.isArray(candidate.videos),
+    Array.isArray(candidate.videos) &&
+    // `story` is optional so an older client payload is still accepted; it is
+    // normalized to a safe shape on both read and write.
+    (candidate.story === undefined || Array.isArray(candidate.story)),
   );
 }
 

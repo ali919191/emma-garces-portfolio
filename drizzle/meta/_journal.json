@@ -15,6 +15,13 @@
       "when": 1787085022721,
       "tag": "0001_uneven_krista_starr",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787111908440,
+      "tag": "0002_smart_mastermind",
+      "breakpoints": true
     }
   ]
 }

@@ -11,8 +11,8 @@ describe("portfolio data policy", () => {
     source.profile.visibility.instagram = false;
     source.settings.heroMediaId = "private";
     source.media = [
-      { id: "private", key: "private.jpg", url: "/private", filename: "private.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: false, focalPoint: "center" },
-      { id: "public", key: "public.jpg", url: "/public", filename: "public.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, focalPoint: "center" },
+      { id: "private", key: "private.jpg", url: "/private", filename: "private.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: false, minorEra: false, focalPoint: "center" },
+      { id: "public", key: "public.jpg", url: "/public", filename: "public.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, minorEra: false, focalPoint: "center" },
     ];
     source.credits = [
       { id: "hidden", event: "", designer: "", showName: "", city: "", country: "", year: "", venue: "", notes: "", designerBase: "", priority: "hidden", verified: false, public: true },
@@ -47,8 +47,8 @@ describe("portfolio data policy", () => {
     const source = structuredClone(defaultPortfolio);
     source.settings.heroMediaId = "";
     source.media = [
-      { id: "previous", key: "previous.jpg", url: "/previous", filename: "previous.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: true, focalPoint: "center" },
-      { id: "featured", key: "featured.jpg", url: "/featured", filename: "featured.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, focalPoint: "center" },
+      { id: "previous", key: "previous.jpg", url: "/previous", filename: "previous.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: true, minorEra: false, focalPoint: "center" },
+      { id: "featured", key: "featured.jpg", url: "/featured", filename: "featured.jpg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, minorEra: false, focalPoint: "center" },
     ];
 
     expect(toPublicPortfolio(source).settings.heroMediaId).toBe("featured");
@@ -80,7 +80,7 @@ describe("portfolio data policy", () => {
     expect(publicAssetSrc({ key: "bad\\key", url: "/fallback.jpg" })).toBe("/fallback.jpg");
     const nested = JSON.stringify(JSON.stringify({ media: toPublicPortfolio({
       ...structuredClone(defaultPortfolio),
-      media: [{ id: "public", key: "portfolio/look.jpeg", url: mediaUrl("portfolio/look.jpeg"), filename: "look.jpeg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, focalPoint: "center" }],
+      media: [{ id: "public", key: "portfolio/look.jpeg", url: mediaUrl("portfolio/look.jpeg"), filename: "look.jpeg", category: "runway", caption: "", photographer: "", designer: "", event: "", date: "", featured: true, public: true, minorEra: false, focalPoint: "center" }],
     }).media }));
     expect(nested).not.toMatch(/\/api\/media\?key=[^"]*\\\\/);
   });

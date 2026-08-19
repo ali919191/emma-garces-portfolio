@@ -1,0 +1,1 @@
+ALTER TABLE "media_assets" ADD COLUMN "minor_era" boolean DEFAULT false NOT NULL;

@@ -4,34 +4,43 @@ import { upload as uploadBlob } from "@vercel/blob/client";
 import { useMemo, useRef, useState } from "react";
 import {
   availabilityLabels,
+  emptyStoryContent,
+  mergeStoryCatalog,
   nextHeroMediaId,
   portfolioWarnings,
   serviceOptions,
+  storyFactKinds,
+  storySectionIsEmpty,
   type AvailabilityStatus,
   type Credit,
   type MediaAsset,
   type MediaCategory,
   type PortfolioData,
   type Profile,
+  type StoryFact,
+  type StoryFactKind,
+  type StorySection,
+  type StorySectionContent,
   type Video,
   type VisibilityKey,
 } from "../../lib/portfolio";
 import { inquiryStatuses, type BookingInquiry, type InquiryStatus } from "../../lib/inquiries";
 import { DigitalCompCard } from "./DigitalCompCard";
 
-type StudioSection = "overview" | "inquiries" | "profile" | "measurements" | "credits" | "media" | "videos" | "comp-card" | "settings" | "exports";
+type StudioSection = "overview" | "inquiries" | "profile" | "measurements" | "credits" | "story" | "media" | "videos" | "comp-card" | "settings" | "exports";
 
 const sections: { id: StudioSection; label: string; marker: string }[] = [
   { id: "overview", label: "Overview", marker: "01" },
   { id: "profile", label: "Profile", marker: "02" },
   { id: "measurements", label: "Measurements", marker: "03" },
   { id: "credits", label: "Runway credits", marker: "04" },
-  { id: "media", label: "Media library", marker: "05" },
-  { id: "videos", label: "Runway video", marker: "06" },
-  { id: "comp-card", label: "Comp card", marker: "07" },
-  { id: "settings", label: "Portfolio settings", marker: "08" },
-  { id: "inquiries", label: "Inquiries", marker: "09" },
-  { id: "exports", label: "Export studio", marker: "10" },
+  { id: "story", label: "Story & career", marker: "05" },
+  { id: "media", label: "Media library", marker: "06" },
+  { id: "videos", label: "Runway video", marker: "07" },
+  { id: "comp-card", label: "Comp card", marker: "08" },
+  { id: "settings", label: "Portfolio settings", marker: "09" },
+  { id: "inquiries", label: "Inquiries", marker: "10" },
+  { id: "exports", label: "Export studio", marker: "11" },
 ];
 
 const mediaCategories: MediaCategory[] = ["runway", "editorial", "beauty", "digitals", "headshot", "full-body", "campaign", "lookbook", "behind-the-scenes"];
@@ -87,6 +96,7 @@ export function PortfolioStudio({ initialData, initialInquiries = [] }: { initia
               {section === "profile" && <ProfileEditor data={data} setData={setData} />}
               {section === "measurements" && <MeasurementsEditor data={data} setData={setData} />}
               {section === "credits" && <CreditsEditor data={data} setData={setData} />}
+              {section === "story" && <StoryEditor data={data} setData={setData} />}
               {section === "media" && <MediaEditor data={data} setData={setData} />}
               {section === "videos" && <VideosEditor data={data} setData={setData} />}
               {section === "comp-card" && <CompCardEditor data={data} setData={setData} />}
@@ -163,6 +173,169 @@ function CreditsEditor({ data, setData }: EditorProps) {
   );
 }
 
+const factKindLabels: Record<StoryFactKind, string> = {
+  milestone: "Milestone",
+  designer: "Designer",
+  show: "Show / event",
+  location: "City / country",
+  education: "Education",
+  business: "Business",
+  technology: "Technology / AI",
+  award: "Award",
+  goal: "Future goal",
+  note: "Note",
+};
+
+function StoryEditor({ data, setData }: EditorProps) {
+  const catalog = useMemo(() => mergeStoryCatalog(data.story), [data.story]);
+  const [openSlug, setOpenSlug] = useState(catalog[0]?.slug ?? "");
+  const active = catalog.find((section) => section.slug === openSlug) ?? catalog[0];
+
+  const writeSection = (slug: string, patch: Partial<StorySection>) =>
+    setData({ ...data, story: catalog.map((section) => (section.slug === slug ? { ...section, ...patch } : section)) });
+  const writeContent = (slug: string, patch: Partial<StorySectionContent>) => {
+    const current = catalog.find((section) => section.slug === slug);
+    if (!current) return;
+    writeSection(slug, { content: { ...current.content, ...patch } });
+  };
+
+  if (!active) return null;
+  const content = active.content;
+  const toggleRef = (key: "mediaIds" | "videoIds" | "creditIds", id: string) =>
+    writeContent(active.slug, { [key]: content[key].includes(id) ? content[key].filter((item) => item !== id) : [...content[key], id] } as Partial<StorySectionContent>);
+
+  return (
+    <div>
+      <SectionIntro
+        eyebrow="Approved knowledge"
+        title="Story &amp; career"
+        copy="Enter only information Emma has approved. Nothing here is generated. Sections stay private until you publish them, and referencing an image or credit never changes that record's own visibility."
+      />
+
+      <div className="editor-actions">
+        <p>{catalog.filter((section) => !storySectionIsEmpty(section)).length} of {catalog.length} sections have content · {catalog.filter((section) => section.public).length} public</p>
+      </div>
+
+      <div className="form-panel">
+        <label className="field"><span>Section</span>
+          <select value={active.slug} onChange={(event) => setOpenSlug(event.target.value)}>
+            {catalog.map((section) => (
+              <option key={section.slug} value={section.slug}>
+                {section.title}{storySectionIsEmpty(section) ? " — empty" : ""}{section.public ? " · public" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <article className="credit-editor">
+        <div className="credit-editor-head">
+          <span>{active.title}</span>
+          <div><button onClick={() => writeSection(active.slug, { content: structuredClone(emptyStoryContent) })}>Clear section</button></div>
+        </div>
+
+        <div className="form-grid two">
+          <Field label="Section title" value={active.title} onChange={(v) => writeSection(active.slug, { title: v })} />
+          <Field label="Short summary" value={content.summary} onChange={(v) => writeContent(active.slug, { summary: v })} placeholder="One approved sentence" />
+        </div>
+
+        <label className="field full"><span>Narrative</span>
+          <textarea
+            rows={10}
+            value={content.body}
+            onChange={(event) => writeContent(active.slug, { body: event.target.value })}
+            placeholder="Paste Emma's approved answer here. Separate paragraphs with a blank line."
+          />
+        </label>
+
+        <div className="inline-toggles">
+          <VisibilityToggle label="Publish this section" checked={active.public} onChange={() => writeSection(active.slug, { public: !active.public })} />
+        </div>
+
+        <StoryFacts slug={active.slug} facts={content.facts} onChange={(facts) => writeContent(active.slug, { facts })} />
+
+        <StoryReferences
+          label="Associated images"
+          empty="No media in the library yet."
+          items={data.media.map((asset) => ({ id: asset.id, label: asset.caption || asset.filename, meta: asset.category, isPublic: asset.public, flagged: asset.minorEra }))}
+          selected={content.mediaIds}
+          onToggle={(id) => toggleRef("mediaIds", id)}
+        />
+        <StoryReferences
+          label="Associated videos"
+          empty="No videos added yet."
+          items={data.videos.map((video) => ({ id: video.id, label: video.label || video.url || "Untitled video", meta: video.year, isPublic: video.public }))}
+          selected={content.videoIds}
+          onToggle={(id) => toggleRef("videoIds", id)}
+        />
+        <StoryReferences
+          label="Associated runway credits"
+          empty="No runway credits entered yet."
+          items={data.credits.map((credit) => ({ id: credit.id, label: credit.designer || credit.event || "Untitled credit", meta: [credit.city, credit.year].filter(Boolean).join(" · "), isPublic: credit.public && credit.priority !== "hidden" }))}
+          selected={content.creditIds}
+          onToggle={(id) => toggleRef("creditIds", id)}
+        />
+      </article>
+    </div>
+  );
+}
+
+function StoryFacts({ slug, facts, onChange }: { slug: string; facts: StoryFact[]; onChange: (facts: StoryFact[]) => void }) {
+  const add = () => onChange([...facts, { id: crypto.randomUUID(), kind: "milestone", label: "", value: "", year: "", location: "" }]);
+  const update = (id: string, patch: Partial<StoryFact>) => onChange(facts.map((fact) => (fact.id === id ? { ...fact, ...patch } : fact)));
+  return (
+    <div className="visibility-box">
+      <h3>Structured facts</h3>
+      <p className="analytics-note">Discrete, checkable facts drawn from the narrative above. Later phases read these instead of parsing prose. Leave blank if Emma has not supplied the detail.</p>
+      {!facts.length && <p className="empty-copy">No approved facts yet.</p>}
+      {facts.map((fact) => (
+        <div className="form-grid three" key={`${slug}-${fact.id}`}>
+          <label className="field"><span>Type</span>
+            <select value={fact.kind} onChange={(event) => update(fact.id, { kind: event.target.value as StoryFactKind })}>
+              {storyFactKinds.map((kind) => <option key={kind} value={kind}>{factKindLabels[kind]}</option>)}
+            </select>
+          </label>
+          <Field label="Label" value={fact.label} onChange={(v) => update(fact.id, { label: v })} placeholder="e.g. New York Fashion Week" />
+          <Field label="Detail" value={fact.value} onChange={(v) => update(fact.id, { value: v })} placeholder="Approved detail" />
+          <Field label="Date / year" value={fact.year} onChange={(v) => update(fact.id, { year: v })} />
+          <Field label="City / country" value={fact.location} onChange={(v) => update(fact.id, { location: v })} />
+          <div className="asset-actions"><button className="danger" onClick={() => onChange(facts.filter((item) => item.id !== fact.id))}>Remove fact</button></div>
+        </div>
+      ))}
+      <button className="button outline" onClick={add}>+ Add fact</button>
+    </div>
+  );
+}
+
+function StoryReferences({ label, empty, items, selected, onToggle }: {
+  label: string;
+  empty: string;
+  items: { id: string; label: string; meta?: string; isPublic: boolean; flagged?: boolean }[];
+  selected: string[];
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="visibility-box">
+      <h3>{label}</h3>
+      {!items.length ? <p className="empty-copy">{empty}</p> : (
+        <>
+          <p className="analytics-note">{selected.length} selected. Private records may be associated now; they stay private and are removed from the public payload until they are published on their own record.</p>
+          <div>
+            {items.map((item) => (
+              <VisibilityToggle
+                key={item.id}
+                label={`${item.label}${item.meta ? ` · ${item.meta}` : ""}${item.isPublic ? "" : " · private"}${item.flagged ? " · minor-era" : ""}`}
+                checked={selected.includes(item.id)}
+                onChange={() => onToggle(item.id)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function MediaEditor({ data, setData }: EditorProps) {
   const [category, setCategory] = useState<MediaCategory>("runway");
   const [uploading, setUploading] = useState(false);
@@ -176,7 +349,7 @@ function MediaEditor({ data, setData }: EditorProps) {
           handleUploadUrl: "/api/media/upload",
         });
         const key = blob.pathname;
-        const asset: MediaAsset = { id: crypto.randomUUID(), key, url: `/api/media?key=${encodeURIComponent(key)}`, filename: file.name, mimeType: file.type, size: file.size, category, caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: false, focalPoint: "center" };
+        const asset: MediaAsset = { id: crypto.randomUUID(), key, url: `/api/media?key=${encodeURIComponent(key)}`, filename: file.name, mimeType: file.type, size: file.size, category, caption: "", photographer: "", designer: "", event: "", date: "", featured: false, public: false, minorEra: false, focalPoint: "center" };
         setData((current) => ({ ...current, media: [...current.media, asset] }));
       }
     } catch (error) {
@@ -188,7 +361,7 @@ function MediaEditor({ data, setData }: EditorProps) {
   const update = (id: string, patch: Partial<MediaAsset>) => setData({ ...data, media: data.media.map((asset) => asset.id === id ? { ...asset, ...patch } : asset) });
   async function remove(asset: MediaAsset) { const response = await fetch(`/api/media?key=${encodeURIComponent(asset.key)}`, { method: "DELETE" }); if (response.ok) setData({ ...data, media: data.media.filter((item) => item.id !== asset.id), settings: { ...data.settings, heroMediaId: data.settings.heroMediaId === asset.id ? "" : data.settings.heroMediaId } }); else window.alert("The media item could not be deleted."); }
   return (
-    <div><SectionIntro eyebrow="Image-first curation" title="Media library" copy="Upload original portfolio assets, classify them, and control which images appear publicly or in submission exports." /><div className="upload-controls"><label className="field"><span>Upload category</span><select value={category} onChange={(event) => setCategory(event.target.value as MediaCategory)}>{mediaCategories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><div className="drop-zone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); upload(event.dataTransfer.files); }}><input ref={inputRef} type="file" accept="image/*,video/*" multiple onChange={(event) => event.target.files && upload(event.target.files)} /><span>{uploading ? "Uploading…" : "Drop files here or"}</span><button className="button outline" disabled={uploading} onClick={() => inputRef.current?.click()}>Choose files</button><small>JPG, PNG, WebP, MP4 · up to 50 MB each</small></div></div>{!data.media.length && <EmptyState title="Your media library is empty" copy="Begin with one strong runway hero, then add editorial, beauty, and natural digitals." action="Choose first image" onAction={() => inputRef.current?.click()} />}{data.media.length > 0 && <div className="asset-grid">{data.media.map((asset) => <article className="asset-card" key={asset.id}><div className="asset-image"><img src={asset.url} alt="" style={{ objectPosition: asset.focalPoint }} />{data.settings.heroMediaId === asset.id && <span>Hero</span>}</div><div className="asset-fields"><p>{asset.filename}</p><div className="form-grid two compact"><label className="field"><span>Category</span><select value={asset.category} onChange={(event) => update(asset.id, { category: event.target.value as MediaCategory })}>{mediaCategories.map((item) => <option key={item}>{item}</option>)}</select></label><label className="field"><span>Focal point</span><select value={asset.focalPoint} onChange={(event) => update(asset.id, { focalPoint: event.target.value as MediaAsset["focalPoint"] })}><option>center</option><option>top</option><option>bottom</option></select></label><Field label="Caption" value={asset.caption} onChange={(v) => update(asset.id, { caption: v })} /><Field label="Photographer" value={asset.photographer} onChange={(v) => update(asset.id, { photographer: v })} /></div><div className="asset-actions"><button onClick={() => setData({ ...data, settings: { ...data.settings, heroMediaId: nextHeroMediaId(data.settings.heroMediaId, asset.id) } })}>{data.settings.heroMediaId === asset.id ? "Remove hero" : "Set as hero"}</button><button onClick={() => update(asset.id, { featured: !asset.featured })}>{asset.featured ? "★ Featured" : "☆ Feature"}</button><button onClick={() => update(asset.id, { public: !asset.public })}>{asset.public ? "Public" : "Private"}</button><button className="danger" onClick={() => remove(asset)}>Delete</button></div></div></article>)}</div>}</div>
+    <div><SectionIntro eyebrow="Image-first curation" title="Media library" copy="Upload original portfolio assets, classify them, and control which images appear publicly or in submission exports." /><div className="upload-controls"><label className="field"><span>Upload category</span><select value={category} onChange={(event) => setCategory(event.target.value as MediaCategory)}>{mediaCategories.map((item) => <option key={item} value={item}>{item}</option>)}</select></label><div className="drop-zone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); upload(event.dataTransfer.files); }}><input ref={inputRef} type="file" accept="image/*,video/*" multiple onChange={(event) => event.target.files && upload(event.target.files)} /><span>{uploading ? "Uploading…" : "Drop files here or"}</span><button className="button outline" disabled={uploading} onClick={() => inputRef.current?.click()}>Choose files</button><small>JPG, PNG, WebP, MP4 · up to 50 MB each</small></div></div>{!data.media.length && <EmptyState title="Your media library is empty" copy="Begin with one strong runway hero, then add editorial, beauty, and natural digitals." action="Choose first image" onAction={() => inputRef.current?.click()} />}{data.media.length > 0 && <div className="asset-grid">{data.media.map((asset) => <article className="asset-card" key={asset.id}><div className="asset-image"><img src={asset.url} alt="" style={{ objectPosition: asset.focalPoint }} />{data.settings.heroMediaId === asset.id && <span>Hero</span>}</div><div className="asset-fields"><p>{asset.filename}</p><div className="form-grid two compact"><label className="field"><span>Category</span><select value={asset.category} onChange={(event) => update(asset.id, { category: event.target.value as MediaCategory })}>{mediaCategories.map((item) => <option key={item}>{item}</option>)}</select></label><label className="field"><span>Focal point</span><select value={asset.focalPoint} onChange={(event) => update(asset.id, { focalPoint: event.target.value as MediaAsset["focalPoint"] })}><option>center</option><option>top</option><option>bottom</option></select></label><Field label="Caption" value={asset.caption} onChange={(v) => update(asset.id, { caption: v })} /><Field label="Photographer" value={asset.photographer} onChange={(v) => update(asset.id, { photographer: v })} /></div><div className="asset-actions"><button onClick={() => setData({ ...data, settings: { ...data.settings, heroMediaId: nextHeroMediaId(data.settings.heroMediaId, asset.id) } })}>{data.settings.heroMediaId === asset.id ? "Remove hero" : "Set as hero"}</button><button onClick={() => update(asset.id, { featured: !asset.featured })}>{asset.featured ? "★ Featured" : "☆ Feature"}</button><button onClick={() => update(asset.id, { public: !asset.public })}>{asset.public ? "Public" : "Private"}</button><button onClick={() => update(asset.id, { minorEra: !asset.minorEra })} title="Marks material captured while Emma was a minor. Classification only — it does not publish or hide the asset.">{asset.minorEra ? "⚠ Minor-era" : "Mark minor-era"}</button><button className="danger" onClick={() => remove(asset)}>Delete</button></div></div></article>)}</div>}</div>
   );
 }
 

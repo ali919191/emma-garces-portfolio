@@ -10,7 +10,7 @@ ACTIVE_PHASE:        Phase 2A — Emma Knowledge Foundation
 PHASE 1 STATUS:      COMPLETE / FROZEN
 PRODUCTION DOMAIN:   https://www.emmagarces.com
 PRODUCTION COMMIT:   1d639c1447beea0746400770792827290b276092  (main, "fix: refine HARFT tagline alignment")
-LAST MASTER UPDATE:  2026-08-19
+LAST MASTER UPDATE:  2026-08-19 (Phase 2A knowledge foundation implemented)
 ```
 
 **Only the ACTIVE_PHASE may be implemented** unless the user explicitly authorizes different
@@ -293,7 +293,7 @@ rearranging itself is **more** impressive on camera than a new interface appeari
 | `portfolio_videos` | Runway video links/URLs |
 | `runway_credits` | Show credits with verification and priority |
 | `booking_inquiries` | Phase 1 booking submissions with attribution fields |
-| `content_sections` | **Unused extension point.** `slug` PK, `title`, `content` jsonb, `isPublic`, `sortOrder` |
+| `content_sections` | **Emma's story/biography store (active since Phase 2A).** `slug` PK, `title`, `content` jsonb, `isPublic`, `sortOrder` |
 
 ### `visibility` keys on `profiles`
 
@@ -317,8 +317,60 @@ build a temporal-geographic narrative object. It is currently rendered as a flat
 Runway, Fashion Weeks, Designers, Editorial, Campaigns, Beauty, Dubai, International
 Availability.
 
-> **`content_sections` is where Emma's biography lives.** Phase 2A populates it. Adding those
-> sections requires **no schema migration** and no replacement of the portfolio shell.
+> **`content_sections` is where Emma's biography lives.** Phase 2A activated it. Adding those
+> sections required **no schema migration** and no replacement of the portfolio shell.
+
+### The story layer (implemented in Phase 2A)
+
+`content_sections` is surfaced through the domain type `StorySection` in `lib/portfolio.ts` and
+carried on `PortfolioData.story`, so it flows through the existing read → Studio → `PUT
+/api/portfolio` → write path. **No new API route was created.**
+
+The `content` JSONB payload has a fixed, human-readable shape (`StorySectionContent`):
+
+```ts
+{
+  summary:   string        // one approved sentence
+  body:      string        // narrative; paragraphs separated by blank lines
+  facts:     StoryFact[]   // discrete machine-readable facts
+  mediaIds:  string[]      // references → media_assets.id
+  videoIds:  string[]      // references → portfolio_videos.id
+  creditIds: string[]      // references → runway_credits.id
+}
+
+StoryFact = { id, kind, label, value, year, location }
+```
+
+`StoryFact.kind` is a controlled vocabulary covering the Phase 2A fact classes:
+`milestone · designer · show · location · education · business · technology · award · goal ·
+note`. One flat fact list with a discriminator was chosen over ten parallel typed arrays —
+see decision D-012.
+
+**References, not copies.** A story section points at existing records by id. It never
+duplicates a media asset, Blob object, video, or credit, and it never overrides the
+visibility of the record it references. `runway_credits`, `media_assets` and
+`portfolio_videos` remain the canonical stores.
+
+**Canonical catalogue.** `storySectionCatalog` in `lib/portfolio.ts` lists the eleven slugs
+(matching what `seedPortfolio()` seeds, with matching titles so re-saving never churns a row).
+Studio renders `mergeStoryCatalog()`, which backs the catalogue with stored rows and blank
+placeholders — so the editor works whether or not the production database was ever seeded.
+
+**Write semantics.** Story sections are **upserted by slug and never deleted**, unlike credits/
+media/videos which are replaced wholesale. See decision D-011.
+
+### Minor-era classification (implemented in Phase 2A)
+
+`media_assets.minor_era` (boolean, `NOT NULL DEFAULT false`, migration `0002`) plus
+`MediaAsset.minorEra` in the domain type. Studio exposes a per-asset toggle in the media
+library.
+
+It is a **classification boundary only.** It does not publish, unpublish, or filter anything
+today — `isPublic` remains the single publication gate. `lib/portfolio.ts` ships the reusable
+primitives later phases must consult: `isMinorEraAsset()`, `minorEraAssetIds()`,
+`excludeMinorEraAssets()`, and the `minorEraPolicy` constant recording that biometric
+analysis, matching/fit use, and unrestricted inference are all disallowed for this material
+and that publication stays a deliberate per-item decision.
 
 **Also notable:** `booking_inquiries` already captures `referrer` and all five UTM fields.
 Visitor-intent signal is already being written to PostgreSQL and nothing currently consumes it.
@@ -341,8 +393,9 @@ Visitor-intent signal is already being written to PostgreSQL and nothing current
 |---|---|
 | `0000_sour_black_bolt` | Initial schema: profiles, portfolio_settings, runway_credits, media_assets, portfolio_videos, content_sections |
 | `0001_uneven_krista_starr` | **Additive.** New `booking_inquiries` table; 7 new columns on `portfolio_settings` (availability_status, primary_market, travel_available, additional_markets, availability_note, comp_card_primary_media_id, comp_card_media_ids) |
+| `0002_smart_mastermind` | **Additive, single statement.** `ALTER TABLE "media_assets" ADD COLUMN "minor_era" boolean DEFAULT false NOT NULL;` |
 
-Both are additive. Neither drops or rewrites existing portfolio rows. **Do not rerun
+All three are additive. None drops or rewrites existing portfolio rows. **Do not rerun
 `pnpm db:seed` against a populated database.**
 
 ---
@@ -633,6 +686,32 @@ Also in scope:
 - Studio remains the approval source for everything.
 
 **Not in scope for 2A:** any AI, any composer, any embeddings, any new provider.
+
+#### Implementation status — engineering COMPLETE, content collection ONGOING
+
+The mechanism shipped on 2026-08-19. Emma's actual content has not been entered — that is the
+remaining work, and it is hers to supply.
+
+| Capability | Status |
+|---|---|
+| `content_sections` usable through Studio (Story & career, marker 05) | ✅ built |
+| Title, summary, narrative body, public/private, sort order, save/update | ✅ built |
+| Structured facts with a controlled `kind` vocabulary | ✅ built |
+| Story → media / video / credit references by id (no duplication) | ✅ built |
+| `minorEra` flag, migration, Studio toggle, reusable policy helpers | ✅ built |
+| Public sanitization of story sections and their references | ✅ built |
+| Emma's biography, history, milestones, education, ambitions entered | ⬜ awaiting Emma |
+| Public rendering of story content | ⬜ deferred to Phase 3 |
+
+**The content workflow this unlocks:** Emma provides an answer → it is written up as approved
+text → entered in Studio → Emma reviews and edits → it stays private until ready → publishing
+the section makes it part of the sanitized public knowledge model → relevant existing media,
+videos and credits are associated by reference → later HARFT phases consume approved facts
+instead of inventing information.
+
+**Deliberately not built in 2A:** section deletion (retire a section by clearing it and leaving
+it private), rich-text/page-builder editing, and any public UI. Studio was extended, never
+redesigned; `PublicPortfolio.tsx` and `globals.css` were not touched.
 
 ---
 
@@ -982,6 +1061,36 @@ Chronological, lifecycle-significant events only. Not a command log.
 
 ---
 
+**2026-08-19 — Phase 2A: Emma Knowledge Foundation implemented**
+- **Phase:** 2A (authorized explicitly by the user; ACTIVE_PHASE unchanged)
+- **Change:** activated `content_sections` as Emma's story store and established the minor-era
+  classification boundary.
+  - `lib/portfolio.ts` — `StorySection` / `StorySectionContent` / `StoryFact` types,
+    `storySectionCatalog`, `normalizeStory*` coercion, `mergeStoryCatalog`,
+    `storySectionIsEmpty`, `minorEraPolicy` + `isMinorEraAsset` / `minorEraAssetIds` /
+    `excludeMinorEraAssets`, `MediaAsset.minorEra`, story sanitization inside
+    `toPublicPortfolio()`, optional `story` in `isPortfolioData()`.
+  - `db/schema.ts` — `media_assets.minor_era`.
+  - `db/portfolio-repository.ts` — reads `content_sections`, persists story by slug upsert,
+    persists `minorEra`.
+  - `app/components/PortfolioStudio.tsx` — new **Story & career** section (marker 05, others
+    renumbered), narrative + facts + reference pickers; minor-era toggle in the media library.
+  - `tests/story-content.test.ts` — 16 new cases.
+- **Migration:** `0002_smart_mastermind` — additive, single `ADD COLUMN` with a default. No
+  drops, no rewrites, no seed.
+- **Validation:** typecheck **passed** · lint **passed (0 errors, 0 warnings)** · tests
+  **40/40 passed across 9 files** (baseline 24/24 re-confirmed before the change) · production
+  build **passed** (webpack) · `git diff --check` **clean**.
+- **Deployment:** see §16 — code committed, production migration `0002` still to be applied.
+- **Scope discipline:** no AI dependency, SDK, embedding, vector store, or provider added.
+  `PublicPortfolio.tsx`, `app/globals.css`, `package.json` and `pnpm-lock.yaml` unchanged. No
+  Phase 2B/2C work included.
+- **Decisions recorded:** D-010 … D-013. **New unresolved:** U-007, U-008.
+- **Rollback:** revert the commit. The `minor_era` column is additive with a default and can be
+  left in place harmlessly; no data migration is required to roll back.
+
+---
+
 **2026-08-19 — Project master accuracy pass**
 - **Phase:** governance (no phase implementation)
 - **Change:** corrected `PROJECT_MASTER.md` against Phase 1's actual verification record.
@@ -1115,9 +1224,9 @@ Chronological, lifecycle-significant events only. Not a command log.
 | **Hosting** | Vercel project `emma-garces-portfolio`, Git integration deploys from `origin/main`, `nodeVersion: 24.x` |
 | **Active phase** | Phase 2A — Emma Knowledge Foundation |
 | **Architecture** | Next.js 16.3.1 / React 19.2.6 / TypeScript 5.9.3 / Tailwind 4.2.1 / Neon PostgreSQL + Drizzle 0.45.2 / private Vercel Blob 2.8.0 / NextAuth 4.24.15 GitHub OAuth |
-| **Migrations in repo** | `0000_sour_black_bolt`, `0001_uneven_krista_starr` (both additive) |
-| **Migration state in production DB** | **`0000` and `0001` both applied and verified.** Drizzle tracking confirms both; `booking_inquiries` and the new `portfolio_settings` columns confirmed present; existing profile/media data intact; no seed or reset performed |
-| **Tests** | 8 files, **24 / 24 passing**. typecheck, lint, and production build also passing as of the latest branding work |
+| **Migrations in repo** | `0000_sour_black_bolt`, `0001_uneven_krista_starr`, `0002_smart_mastermind` (all additive) |
+| **Migration state in production DB** | **`0000` and `0001` applied and verified.** `0002_smart_mastermind` is **NOT yet applied** — required before or with the Phase 2A deploy (§18 U-007) |
+| **Tests** | 9 files, **40 / 40 passing**. typecheck, lint, and production build all passing as of the Phase 2A implementation |
 | **Env vars** | 11 required (see §3). No AI/model variables exist yet |
 | **Dependencies** | 7 runtime dependencies. No AI SDK, no vector store, no image/video processing library, no background job runner, no rate limiter |
 
@@ -1126,6 +1235,10 @@ Chronological, lifecycle-significant events only. Not a command log.
 Public portfolio · Portfolio Studio · Export Studio (5 formats) · booking inquiries + Studio
 triage · digital comp card · availability status · HARFT AI attribution · SEO (sitemap, robots,
 JSON-LD, OG) · Vercel Web Analytics (9 events).
+
+**Phase 2A (built, pending deploy):** Studio **Story & career** editor over `content_sections`
+· structured story facts · story→media/video/credit references · `minorEra` classification with
+Studio toggle and reusable policy helpers · public sanitization of story content.
 
 ### Content state (2026-08-19) — **this drives Phase 2A sequencing**
 
@@ -1223,6 +1336,32 @@ build or deploy.** Applied immediately by consolidating the Casting Mode impleme
 from the innovation assessment into §8 Phase 2C. Any future constraint discovered mid-task must
 be written into an authoritative section here rather than left in a design note or transcript.
 
+**D-010 · 2026-08-19 · `minorEra` stays truthful in the public projection.** The flag is *not*
+stripped or zeroed by `toPublicPortfolio()`. *Rationale:* it only ever appears on assets Emma
+explicitly published, it carries no contact, measurement, or location data — and stripping it
+would actively defeat §6 rule 9, because a future public-facing route that receives only
+sanitized data could no longer tell which assets it must exclude from inference. Truthful
+classification enables enforcement; blanking it would silently disable it.
+
+**D-011 · 2026-08-19 · Story sections are upserted by slug, never deleted.** Credits, media and
+videos are replaced wholesale on save (delete-all-then-insert). `content_sections` deliberately
+does not follow that pattern: it is a stable catalogue keyed by slug, and a row Studio did not
+send must never be destroyed. Section deletion is not offered in Phase 2A — a section is retired
+by clearing its content and leaving it private.
+
+**D-012 · 2026-08-19 · One flat fact list with a `kind` discriminator, not parallel arrays.**
+`StoryFact.kind` spans milestone/designer/show/location/education/business/technology/award/
+goal/note. *Rationale:* ten typed arrays would mean ten schema decisions, ten editors, and a
+migration every time a new fact class appears. One list with a controlled vocabulary stays
+human-readable in JSONB, keeps Studio simple, and still lets a later Composer filter precisely.
+This is the "use JSONB deliberately, do not invent schema complexity prematurely" line.
+
+**D-013 · 2026-08-19 · Story rides the existing portfolio read/write path.** `story` was added to
+`PortfolioData` rather than given its own API route, so it inherits `requireAdminApi()`, the
+1.5 MB body cap, `isPortfolioData()` validation, `toPublicPortfolio()` sanitization, and the
+existing `revalidatePath()` behaviour for free. `story` is optional in the payload validator so
+an older client is still accepted, and it is normalized on both read and write.
+
 ---
 
 ## 18. Unresolved Items
@@ -1245,6 +1384,19 @@ production:
 
 *To resolve:* run these three against production and log the result in §15/§16. None blocks
 Phase 2A.
+
+**U-007 · Migration `0002_smart_mastermind` not yet applied to production Neon.** The Phase 2A
+code reads and writes `media_assets.minor_era`. Deploying the code without the column will break
+portfolio reads. *To resolve:* run `pnpm db:migrate` against the production `DATABASE_URL`
+before or together with the deploy, then confirm the column exists and Drizzle tracking shows
+`0000`, `0001`, `0002`. **Do not run `pnpm db:seed`.**
+
+**U-008 · Production `content_sections` seed state unknown.** `seedPortfolio()` inserts eleven
+catalogue rows, but seed must not be re-run on a populated database, and it is unverified
+whether it ever ran in production. This is **not blocking**: Studio renders
+`mergeStoryCatalog()`, so the editor shows all eleven sections regardless, and the first save
+upserts them. Expect the first Story save to create up to eleven private, empty rows — that is
+intended, not a defect.
 
 **U-004 · `@vercel/blob@2.8.0` signed-URL support unconfirmed.** Vercel documents
 `issueSignedToken()` / `presignUrl()` for private blobs, which is the clean path for letting a
