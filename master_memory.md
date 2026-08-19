@@ -1,3 +1,18 @@
+> **⚠️ HISTORICAL DOCUMENT — SUPERSEDED**
+>
+> `PROJECT_MASTER.md` is now the authoritative source of truth for this project
+> (architecture, design constraints, privacy rules, active phase, roadmap, deployment policy).
+> Read that file first.
+>
+> This document is retained for provenance as the original migration handoff memory. Parts of
+> it are **no longer accurate** — in particular, it states that no GitHub remote, no Vercel
+> project, and no production domain existed. All three now exist and the site is live at
+> https://www.emmagarces.com. See `PROJECT_MASTER.md` §16–§18.
+>
+> Do not maintain this file as a competing current-state document.
+
+---
+
 # Master Memory — Emma Garces Modeling Portfolio
 
 Read this file first when continuing the project in another Codex/ChatGPT account or on another computer. It is the durable handoff for the work completed in the original session.
