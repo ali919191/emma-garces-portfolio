@@ -6,16 +6,22 @@
 > `harft-ai-innovation-assessment.md`, which are retained as historical source documents.
 
 ```
-ACTIVE_PHASE:        Phase 2A — Emma Knowledge Foundation
-PHASE 1 STATUS:      COMPLETE / FROZEN
-PRODUCTION DOMAIN:   https://www.emmagarces.com
-PRODUCTION COMMIT:   1d639c1447beea0746400770792827290b276092  (main, "fix: refine HARFT tagline alignment")
-LAST MASTER UPDATE:  2026-08-19 (Phase 2A knowledge foundation implemented)
+ACTIVE_PHASE:             Phase 2A — Emma Knowledge Foundation
+PHASE 1 STATUS:           COMPLETE / FROZEN
+PRODUCTION DOMAIN:        https://www.emmagarces.com
+PRODUCTION APP BASELINE:  d123982d4d5ffb6c00448ee30e157296c046a3e9
+                          "feat: activate content_sections story layer and minor-era classification"
+LAST MASTER UPDATE:       2026-08-19 (Phase 2A deployed and production-verified)
 ```
 
 **Only the ACTIVE_PHASE may be implemented** unless the user explicitly authorizes different
 work. Do not automatically proceed to the next phase after completing one. Do not implement
 anything listed in §12 Explicitly Deferred / Prohibited.
+
+> **PRODUCTION APP BASELINE** is the latest commit that materially changed runtime application
+> behaviour, schema, data model, deployment configuration, or production functionality. It is
+> **not** "the newest commit on `main`". Documentation-only commits never advance it — see
+> §14 and decision D-014.
 
 ---
 
@@ -634,7 +640,7 @@ transitions). Everything else in the acceptance set was verified. See §18 U-003
 | `cae6544` | Launch portfolio phase 1 booking and talent platform |
 | `27bdffe` | Clean portfolio media URLs and analytics |
 | `1fd32f8` | Enhance HARFT and Instagram branding |
-| `1d639c1` | Refine HARFT tagline alignment ← **current production** |
+| `1d639c1` | Refine HARFT tagline alignment (final Phase 1 commit) |
 
 The project originated on ChatGPT Sites / Cloudflare (D1 + R2 + Vinext + Workers) at
 `https://emma-garces-portfolio.garcesemma2018.chatgpt.site/`, and was migrated to the current
@@ -1045,6 +1051,60 @@ stops, not suggestions.
 
 > **A deployment is not considered complete until the project master reflects reality.**
 
+### Documentation-only changes
+
+A documentation-only commit — one that touches no runtime code, schema, migration, dependency,
+or deployment configuration — is exempt from most of the above:
+
+- Steps 4, 5 and 8 do not apply. Confirming the site still resolves after any resulting build
+  is sufficient.
+- **It does not advance `PRODUCTION APP BASELINE`.** The baseline tracks material application,
+  data and architecture state, not the newest SHA on `main`.
+- **The master must never chase its own commit hash.** Recording a docs commit's own SHA in the
+  master would make the master immediately stale again, requiring another docs commit, forever.
+  Log a docs commit in §15 only when it carries a decision or correction worth remembering; do
+  not log it merely to record that it exists.
+
+See decision D-014.
+
+### Supplying `DATABASE_URL` safely
+
+**Never `source .env.local` into zsh or bash.** The file contains shell-significant characters
+— the Neon URL includes `&` between query parameters — and zsh fails with `parse error near
+'&'`. Even when it appears to work it can silently mangle values or execute fragments.
+
+Use a dotenv-aware loader, or a small script that reads **only** the variable it needs and
+passes it to the child process's environment. The pattern proven during the `0002` migration:
+
+1. Read `.env.local` line by line. Skip blanks and `#` comments; strip a leading `export `;
+   split on the **first** `=`; strip only matching surrounding quotes.
+2. Fail loudly if the variable is missing or empty rather than falling through to a default —
+   `drizzle.config.ts` falls back to a `localhost` placeholder, so an unset `DATABASE_URL`
+   silently targets the wrong database.
+3. Pass the value to the child process environment (e.g. Python's
+   `subprocess.run([...], env=env)`), never via the shell.
+4. **Never print the full URL.** Echo host and database name only, so the target can be
+   confirmed without exposing credentials.
+
+Then invoke the binary directly — `./node_modules/.bin/drizzle-kit migrate` — which also side-
+steps the local pnpm policy in §18 U-009.
+
+### Verifying a production migration
+
+The procedure used for `0002`, worth repeating for any future migration:
+
+1. **Static SQL check first** — confirm the migration contains no `DROP`, `TRUNCATE`, `DELETE`,
+   `UPDATE`, or `RENAME`, and that it does only what is intended.
+2. **Confirm the target** — print host and database name (never the URL) and match them against
+   the Vercel project's `DATABASE_URL`.
+3. **Record before-state** — row counts of affected tables and whether the new column already
+   exists.
+4. **Require explicit confirmation** before applying to production.
+5. **Record after-state** — same counts, plus column existence and any NULL count. Row counts
+   must be unchanged for an additive migration.
+6. **Never run `pnpm db:seed`** against a populated database.
+7. Apply the migration **before** deploying code that reads the new column.
+
 ### Additional deployment rules
 
 - Do not claim production migration or deployment is complete until Neon, Blob, OAuth, Vercel,
@@ -1058,6 +1118,9 @@ stops, not suggestions.
 ## 15. Lifecycle / Change Log
 
 Chronological, lifecycle-significant events only. Not a command log.
+
+Documentation-only commits are logged **only when they carry a decision or correction worth
+remembering**, and their own SHA is not recorded — see §14 and D-014.
 
 ---
 
@@ -1081,7 +1144,17 @@ Chronological, lifecycle-significant events only. Not a command log.
 - **Validation:** typecheck **passed** · lint **passed (0 errors, 0 warnings)** · tests
   **40/40 passed across 9 files** (baseline 24/24 re-confirmed before the change) · production
   build **passed** (webpack) · `git diff --check` **clean**.
-- **Deployment:** see §16 — code committed, production migration `0002` still to be applied.
+- **Deployment:** **deployed and verified 2026-08-19.** Migration `0002` was applied to
+  production Neon first, then `d123982` was pushed to `origin/main` and built by Vercel.
+  Production verification: `/`, `/book`, `/comp-card`, `/sitemap.xml`, `/robots.txt` all 200;
+  signed-out `/studio` → 307 to `/auth/signin?callbackUrl=%2Fstudio`; public `/api/portfolio`
+  returns 200 carrying the new `story` key (empty — nothing entered or published yet) and
+  `minorEra: false` on both existing public assets, which confirms the `minor_era` column is
+  live and readable; existing media rows intact; no raw Blob URL in the payload; asset `url`
+  blanked; `bookingContact` / `citizenship` / `ethnicity` empty.
+- **Migration order note:** the code reads `media_assets.minor_era`, so the migration had to
+  precede the deploy. It did. Reversing that order would have 500'd every page that calls
+  `readPortfolio()`.
 - **Scope discipline:** no AI dependency, SDK, embedding, vector store, or provider added.
   `PublicPortfolio.tsx`, `app/globals.css`, `package.json` and `pnpm-lock.yaml` unchanged. No
   Phase 2B/2C work included.
@@ -1148,7 +1221,7 @@ Chronological, lifecycle-significant events only. Not a command log.
 - **Phase:** 1
 - **Commits:** `27bdffe` (clean portfolio media URLs and analytics), `1fd32f8` (enhance HARFT
   and Instagram branding), `1d639c1` (refine HARFT tagline alignment)
-- **Deployment:** deployed; `1d639c1` is the current production commit
+- **Deployment:** deployed; `1d639c1` was the production baseline until Phase 2A
 - **Migration:** none
 - **Validation:** typecheck passed, lint passed, **24/24 tests passed**, production build
   passed
@@ -1218,14 +1291,14 @@ Chronological, lifecycle-significant events only. Not a command log.
 | Field | Value |
 |---|---|
 | **Production domain** | `https://www.emmagarces.com` |
-| **Production commit** | `1d639c1447beea0746400770792827290b276092` ("fix: refine HARFT tagline alignment", 2026-08-18 17:20:35 -0500) |
+| **Production app baseline** | `d123982d4d5ffb6c00448ee30e157296c046a3e9` ("feat: activate content_sections story layer and minor-era classification", 2026-08-19). The latest commit that materially changed runtime behaviour, schema, data model, or deployment configuration. Documentation-only commits made after it do not advance this value (D-014) |
 | **Branch** | `main`, tracking `origin/main`, in sync |
 | **Remote** | `https://github.com/ali919191/emma-garces-portfolio.git` |
 | **Hosting** | Vercel project `emma-garces-portfolio`, Git integration deploys from `origin/main`, `nodeVersion: 24.x` |
 | **Active phase** | Phase 2A — Emma Knowledge Foundation |
 | **Architecture** | Next.js 16.3.1 / React 19.2.6 / TypeScript 5.9.3 / Tailwind 4.2.1 / Neon PostgreSQL + Drizzle 0.45.2 / private Vercel Blob 2.8.0 / NextAuth 4.24.15 GitHub OAuth |
 | **Migrations in repo** | `0000_sour_black_bolt`, `0001_uneven_krista_starr`, `0002_smart_mastermind` (all additive) |
-| **Migration state in production DB** | **`0000` and `0001` applied and verified.** `0002_smart_mastermind` is **NOT yet applied** — required before or with the Phase 2A deploy (§18 U-007) |
+| **Migration state in production DB** | **`0000`, `0001` and `0002` all applied and verified.** `0002` was applied ahead of the Phase 2A deploy; production reads of `media_assets.minor_era` succeed, confirming the column exists. No seed or reset performed at any point |
 | **Tests** | 9 files, **40 / 40 passing**. typecheck, lint, and production build all passing as of the Phase 2A implementation |
 | **Env vars** | 11 required (see §3). No AI/model variables exist yet |
 | **Dependencies** | 7 runtime dependencies. No AI SDK, no vector store, no image/video processing library, no background job runner, no rate limiter |
@@ -1236,7 +1309,7 @@ Public portfolio · Portfolio Studio · Export Studio (5 formats) · booking inq
 triage · digital comp card · availability status · HARFT AI attribution · SEO (sitemap, robots,
 JSON-LD, OG) · Vercel Web Analytics (9 events).
 
-**Phase 2A (built, pending deploy):** Studio **Story & career** editor over `content_sections`
+**Phase 2A (live since 2026-08-19):** Studio **Story & career** editor over `content_sections`
 · structured story facts · story→media/video/credit references · `minorEra` classification with
 Studio toggle and reusable policy helpers · public sanitization of story content.
 
@@ -1263,8 +1336,12 @@ HARFT AI outbound link, Instagram outbound links, `/sitemap.xml`, `/robots.txt`,
 protection (no raw Blob URL leak), malformed media URL cleanup, desktop/mobile HARFT branding
 and responsive layout.
 
-Not yet verified against production: authenticated Studio inquiry status-change flow (§18
-U-003).
+Verified at the Phase 2A deploy (2026-08-19): `/sitemap.xml`, `/robots.txt`, signed-out
+`/studio` → 307 to `/auth/signin`, public `/api/portfolio` carrying a sanitized `story` key and
+a readable `minorEra` field, existing media rows intact, no raw Blob URL in the public payload.
+
+Not yet verified against production: authenticated Studio inquiry status-change flow, and the
+Studio **Story & career** editor exercised while signed in (§18 U-003).
 
 ### Known issues
 
@@ -1336,6 +1413,24 @@ build or deploy.** Applied immediately by consolidating the Casting Mode impleme
 from the innovation assessment into §8 Phase 2C. Any future constraint discovered mid-task must
 be written into an authoritative section here rather than left in a design note or transcript.
 
+**D-014 · 2026-08-19 · Documentation-only commits do not advance `PRODUCTION APP BASELINE`.**
+The header field formerly read "PRODUCTION COMMIT", which created a documentation loop: updating
+the master produced a docs commit, which deployed, which made the recorded SHA stale, which
+required another master update, indefinitely. The field is now **`PRODUCTION APP BASELINE`** —
+the latest commit that materially changed runtime application behaviour, schema, data model,
+deployment configuration, or production functionality. *Consequences:* the master tracks
+material application/data/architecture state rather than the tip of `main`; a docs-only commit
+may be logged in §15 when it carries a decision or correction worth remembering, but never
+merely to record its own hash; and the baseline moves only on a material change. See §14
+"Documentation-only changes".
+
+**D-015 · 2026-08-19 · Never `source .env.local` in a shell.** The Neon `DATABASE_URL` contains
+`&`, which zsh parses as a control operator (`parse error near '&'`). Environment variables are
+supplied to child processes programmatically instead, reading only the required key and never
+printing the full URL. Recorded in §14 "Supplying `DATABASE_URL` safely" so the one-off
+validation helper written during the `0002` migration could be discarded without losing the
+lesson.
+
 **D-010 · 2026-08-19 · `minorEra` stays truthful in the public projection.** The flag is *not*
 stripped or zeroed by `toPublicPortfolio()`. *Rationale:* it only ever appears on assets Emma
 explicitly published, it carries no contact, measurement, or location data — and stripping it
@@ -1377,26 +1472,38 @@ production:
   Studio → Inquiries transitions (`new` → `reviewing` → `responded` → `booked` / `closed` /
   `spam`) exercised against the live deployment. *This is the one gap explicitly carried
   forward from the Phase 1 validation pass.*
+- **Studio Story & career editor exercised while signed in against production** — the public
+  side of Phase 2A is verified, but no authenticated save/read-back of a story section has been
+  performed on the live deployment.
 - **Tablet device matrix** — desktop and mobile are verified; tablet breakpoints have not had
   a formal pass.
 - **Production Export Studio printing** — the five export layouts were verified locally during
   migration; production PDF printing has not been re-verified since launch.
 
-*To resolve:* run these three against production and log the result in §15/§16. None blocks
-Phase 2A.
-
-**U-007 · Migration `0002_smart_mastermind` not yet applied to production Neon.** The Phase 2A
-code reads and writes `media_assets.minor_era`. Deploying the code without the column will break
-portfolio reads. *To resolve:* run `pnpm db:migrate` against the production `DATABASE_URL`
-before or together with the deploy, then confirm the column exists and Drizzle tracking shows
-`0000`, `0001`, `0002`. **Do not run `pnpm db:seed`.**
+*To resolve:* run these **four** checks against production and log the result in §15/§16. None
+of them blocks Phase 2A.
 
 **U-008 · Production `content_sections` seed state unknown.** `seedPortfolio()` inserts eleven
 catalogue rows, but seed must not be re-run on a populated database, and it is unverified
 whether it ever ran in production. This is **not blocking**: Studio renders
 `mergeStoryCatalog()`, so the editor shows all eleven sections regardless, and the first save
 upserts them. Expect the first Story save to create up to eleven private, empty rows — that is
-intended, not a defect.
+intended, not a defect. Resolves itself the first time Emma saves in Story & career.
+
+**U-009 · Local `pnpm` scripts are blocked by a supply-chain policy on the owner's machine.**
+pnpm re-runs `install` before every script (`verifyDepsBeforeRun`), and a `minimumReleaseAge`
+policy rejects the pinned `vitest@4.1.11`. This blocks `pnpm db:migrate`, `pnpm test` and
+similar **locally**. It is **not** a project defect and does **not** affect Vercel, which has
+built and deployed this lockfile repeatedly.
+
+*Workaround:* bypass the pnpm script runner and call the binary directly — e.g.
+`./node_modules/.bin/drizzle-kit migrate` — supplying the environment as described in
+§14 "Supplying `DATABASE_URL` safely".
+
+**Do not run `pnpm clean --lockfile`** merely to bypass the policy: it re-resolves every
+dependency and rewrites `pnpm-lock.yaml`, a frozen Phase 1 artifact, with transitive version
+drift. *To resolve properly:* inspect `pnpm config get minimumReleaseAge` and decide whether to
+keep the guard.
 
 **U-004 · `@vercel/blob@2.8.0` signed-URL support unconfirmed.** Vercel documents
 `issueSignedToken()` / `presignUrl()` for private blobs, which is the clean path for letting a
@@ -1420,6 +1527,12 @@ next time README is touched.
 verified: `booking_inquiries` present, new `portfolio_settings` columns present, existing
 profile/media data intact, Drizzle tracking showing both `0000` and `0001`, no seed or reset.
 Recorded in §7 and §16.
+
+**U-007 · Migration `0002_smart_mastermind` — RESOLVED 2026-08-19.** Applied to production Neon
+ahead of the Phase 2A deploy. Confirmed indirectly but conclusively: the public
+`/api/portfolio` response returns 200 with `minorEra` present on existing assets, which is only
+possible if `media_assets.minor_era` exists and is readable. Existing media rows survived
+intact; no seed or reset was run.
 
 **U-002 · Test suite execution — RESOLVED 2026-08-19.** Validation was run after the latest
 branding work: typecheck passed, lint passed, **24/24 tests passed**, production build passed.
