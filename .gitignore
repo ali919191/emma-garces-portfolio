@@ -43,3 +43,11 @@ yarn-error.log*
 /.wrangler/
 /outputs/
 /work/
+
+# Emma source material — large archives and interview source (keep locally, never commit)
+/Portfolio-*.zip
+*.zip
+/Questions for portfolio*.docx
+/files/_audit_sheets/
+/emma-audit/
+/_to_delete/

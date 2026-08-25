@@ -54,7 +54,7 @@ function section(slug: string, overrides: Partial<StorySection> = {}): StorySect
 describe("story content normalization", () => {
   it("coerces untrusted JSONB into a predictable shape without inventing content", () => {
     const result = normalizeStoryContent({ summary: 12, body: null, facts: "nope", mediaIds: ["a", "a", 7, ""], extra: "dropped" });
-    expect(result).toEqual({ summary: "", body: "", facts: [], mediaIds: ["a"], videoIds: [], creditIds: [] });
+    expect(result).toEqual({ summary: "", body: "", facts: [], stats: [], mediaIds: ["a"], videoIds: [], creditIds: [] });
     expect(result).not.toHaveProperty("extra");
   });
 

@@ -11,7 +11,7 @@ PHASE 1 STATUS:           COMPLETE / FROZEN
 PRODUCTION DOMAIN:        https://www.emmagarces.com
 PRODUCTION APP BASELINE:  d123982d4d5ffb6c00448ee30e157296c046a3e9
                           "feat: activate content_sections story layer and minor-era classification"
-LAST MASTER UPDATE:       2026-08-19 (Phase 2A deployed and production-verified)
+LAST MASTER UPDATE:       2026-08-25 (document updated; production NOT changed)
 ```
 
 **Only the ACTIVE_PHASE may be implemented** unless the user explicitly authorizes different
@@ -1124,6 +1124,47 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
 
 ---
 
+**2026-08-25 — Phase 2A content prepared; limited Phase 3 Living Biography implemented (local)**
+- **Phase:** 2A content + owner-authorized limited Phase 3 public UI
+- **Change:** prepared nine approved `content_sections` entries in
+  `content/emma-story-sections.json` (all `public: false`), and implemented the Phase 3 public
+  sections. New `app/components/StorySections.tsx` renders experience strip, Selected Work, Her
+  Story, career timeline, Selected Designers, Beyond The Runway, Professional Approach and
+  International — **all driven entirely by `content_sections`, no hardcoded biography**. Added
+  `StoryStat` (additive JSONB, no migration), two catalog slugs (`beyond-the-runway`,
+  `professional-approach`), public read helpers, a Studio editor for experience figures, and
+  dynamic section numbering so the `01 / …` rhythm stays contiguous as content is published.
+- **Migration:** none — `StoryStat` is additive JSONB and the new slugs are row-keyed.
+- **Validation:** typecheck PASS · lint PASS (0/0) · **49/49 tests across 10 files** · production
+  build PASS · `git diff --check` clean. Browser-verified at 1440×1000 and 390×844.
+- **Local commit:** `426e232` (amended in a later documentation-consistency pass — see the
+  reported SHA). **Pushed: NO. Deployed: NO.** `origin/main` has not received this
+  implementation and **production is unchanged**. `PRODUCTION APP BASELINE` deliberately does
+  **not** advance, because this commit is not deployed.
+- **Decisions recorded:** D-017, D-018. U-014 resolved.
+
+---
+
+**2026-08-25 — Emma source material ingested; owner positioning decisions recorded**
+- **Phase:** 2A (content, no code)
+- **Change:** ingested Emma's 40-question interview (87,829 chars) and a 231.6 MB media archive
+  (110 images, 6 videos). Full visual inspection of every image and video. Produced
+  `EMMA_CONTENT_MEDIA_AUDIT.md` (tiering, hero candidates, placement map, gaps) and
+  `EMMA_CONTENT_PACKAGE.md` (owner-approved copy, recounted statistics, structured timeline ready
+  for Studio entry).
+- **Migration:** none · **Deployment:** none · **Application code:** unchanged
+- **Decisions recorded:** D-016. **New unresolved:** U-010 (Paris year/participation type),
+  U-011 (HARFT AI title).
+- **Key findings carried forward:** identity unverified in the Poshak/Indian-Bride/Hiba folders
+  (`HIB01`–`HIB03` appear to show a different model); the highest-resolution Larita images carry a
+  photographer watermark and need licensed originals; the strongest runway evidence (Negris LeBrum
+  NYFW) exists only at 950 px; Emma has **no current casting digitals**; interview answers Q8, Q9
+  and Q24 are incomplete; sensitive personal disclosures await an explicit consent decision.
+- **Scope:** originals untouched, nothing published, nothing deployed. Working copy held outside the
+  repository.
+
+---
+
 **2026-08-19 — Phase 2A: Emma Knowledge Foundation implemented**
 - **Phase:** 2A (authorized explicitly by the user; ACTIVE_PHASE unchanged)
 - **Change:** activated `content_sections` as Emma's story store and established the minor-era
@@ -1431,6 +1472,53 @@ printing the full URL. Recorded in §14 "Supplying `DATABASE_URL` safely" so the
 validation helper written during the `0002` migration could be discarded without losing the
 lesson.
 
+**D-017 · 2026-08-25 · Limited Phase 3 (Living Biography) implementation explicitly authorized.**
+The owner authorized a bounded Phase 3 public build on top of completed Phase 2A content:
+experience strip, progressive biography, Her Story, curated Selected Work, stronger runway
+presentation, Selected Designers, public career timeline, Beyond The Runway, Professional
+Approach, International/Dubai, and a strengthened booking path. **Phase 2B, Phase 2C, AI
+recomposition, Casting Mode, semantic media intelligence and Runway Vision remain NOT
+authorized.** The design constitution (§4) still binds: this extends the editorial system and
+does not redesign it. `ACTIVE_PHASE` stays **Phase 2A** — this is a scoped exception, not a
+phase advance.
+
+**D-018 · 2026-08-25 · Emma's public business title is `Co-Founder, HARFT AI`.**
+Use `Co-Founder, HARFT AI` as the canonical short title in structured content and in the public
+biography. Her portfolio may describe her involvement in:
+
+- AI operations
+- platform implementation
+- cybersecurity
+- risk reduction
+- business operations
+- entrepreneurship
+
+**Do not independently change the title based on inference.** Specifically, do not substitute
+`Owner, HARFT AI`, `Founder, HARFT AI`, `Co-Owner`, or `Founder & Owner` unless the owner
+explicitly changes this decision. Confirmed by the owner on 2026-08-25 (see U-014, resolved).
+
+**D-016 · 2026-08-25 · Owner-approved portfolio positioning (Phase 2A content).** Ali reviewed
+the content/media audit and issued these decisions, which override the audit's more conservative
+recommendations:
+- **`18 YEARS MODELING EXPERIENCE` is approved for prominent public use.** It is Emma's own account
+  of her career (first runway at ~4, serious pursuit from ~13, now 22) and is not to be withheld or
+  minimised because the childhood portion is undocumented. The child-to-professional distinction is
+  preserved in the long-form biography and timeline because it makes the story richer.
+- **`INTERNATIONAL RUNWAY MODEL` is approved positioning.**
+- **Larita Fashion runway, April 2025 — CONFIRMED.** No longer a verification question.
+- **Poshak Fashion runway, August 2026 — CONFIRMED**, and Emma's most recent show. The chronology
+  should make clear she is actively working now, not retrospectively.
+- **Paris Fashion Week — in person, ~March 2019. Milan Fashion Week — virtual participation.**
+  (Corrected by the owner on 25 Aug 2026, superseding an earlier instruction that grouped both as
+  virtual.) The homepage carries no legalistic qualifier, but the **detailed timeline must state
+  participation type explicitly**, and copy must never claim a physical Milan runway.
+- Recounted totals: **21 runway productions · 19 named designers/houses · 10 named photographers.**
+
+*Rationale for accepting self-reported career history:* a modeling portfolio is a professional
+biography, and career length stated by the subject is normal industry practice. The accuracy rules
+in §6 still bind everything that names a **third party** — designer, house, publication, agency or
+photographer — because those are checkable claims about other people's businesses.
+
 **D-010 · 2026-08-19 · `minorEra` stays truthful in the public projection.** The flag is *not*
 stripped or zeroed by `toPublicPortfolio()`. *Rationale:* it only ever appears on assets Emma
 explicitly published, it carries no contact, measurement, or location data — and stripping it
@@ -1505,6 +1593,20 @@ dependency and rewrites `pnpm-lock.yaml`, a frozen Phase 1 artifact, with transi
 drift. *To resolve properly:* inspect `pnpm config get minimumReleaseAge` and decide whether to
 keep the guard.
 
+**U-012 · Emma's date of birth needed to classify minor-era media correctly.** Emma is 22 as of
+Aug 2026, so she was born ~2003–2004. That places several important sets at or near the age
+boundary: **France/Paris March 2019 (age ~14–15)**, Miss Robinson (~14–16), and — significantly —
+the **Negris LeBrum SS22 New York set of Sept 2021 (age ~17–18)**, which is the strongest material
+in the archive. `media_assets.minor_era` cannot be set accurately without her birth month and year.
+*To resolve:* obtain DOB (kept internal, never published), then flag every pre-18 asset. Blocks
+correct minor-era classification, not publication of adult-era material.
+
+**U-013 · Interview document now disagrees with the confirmed timeline on Paris.** The source DOCX
+states "virtual participation connected to Paris and Milan"; the owner has since confirmed Paris was
+in person. The DOCX is a historical source and is not being edited, but anyone reading both will see
+the discrepancy. *To resolve:* note the correction wherever the interview is retained, and confirm
+what form the Paris participation took (see below) so the timeline wording is precise.
+
 **U-004 · `@vercel/blob@2.8.0` signed-URL support unconfirmed.** Vercel documents
 `issueSignedToken()` / `presignUrl()` for private blobs, which is the clean path for letting a
 vision API read private media in Phase 2D. Whether the pinned version exposes them was not
@@ -1527,6 +1629,21 @@ next time README is touched.
 verified: `booking_inquiries` present, new `portfolio_settings` columns present, existing
 profile/media data intact, Drizzle tracking showing both `0000` and `0001`, no seed or reset.
 Recorded in §7 and §16.
+
+**U-014 · HARFT AI title: `Co-Founder` vs `Owner` — RESOLVED 2026-08-25.** Owner confirmed
+`Co-Founder, HARFT AI` as the correct public title. The canonical value is recorded in D-018 and
+used in `content/emma-story-sections.json` (`beyond-the-runway` body and business `StoryFact`).
+No other title variant may be substituted.
+
+**U-011 · HARFT AI title and ownership status — RESOLVED 2026-08-25.** The canonical public title
+has been provided and confirmed: **`Co-Founder, HARFT AI`**. The `{{TITLE}}` placeholder has been
+removed from all content. Superseded by D-018.
+
+**U-010 · Paris / Milan participation type — RESOLVED 2026-08-25.** Owner confirmed:
+**Paris Fashion Week — in person, ~March 2019. Milan Fashion Week — virtual participation.**
+This supersedes the interview's summary line, which grouped both as virtual. Note that Emma's own
+interview text still reads "virtual participation connected to Paris and Milan" — that document is a
+historical source and now disagrees with the site on this point; see U-013.
 
 **U-007 · Migration `0002_smart_mastermind` — RESOLVED 2026-08-19.** Applied to production Neon
 ahead of the Phase 2A deploy. Confirmed indirectly but conclusively: the public

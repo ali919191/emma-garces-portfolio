@@ -19,6 +19,7 @@ import {
   type Profile,
   type StoryFact,
   type StoryFactKind,
+  type StoryStat,
   type StorySection,
   type StorySectionContent,
   type Video,
@@ -252,6 +253,8 @@ function StoryEditor({ data, setData }: EditorProps) {
           <VisibilityToggle label="Publish this section" checked={active.public} onChange={() => writeSection(active.slug, { public: !active.public })} />
         </div>
 
+        <StoryStats slug={active.slug} stats={content.stats} onChange={(stats) => writeContent(active.slug, { stats })} />
+
         <StoryFacts slug={active.slug} facts={content.facts} onChange={(facts) => writeContent(active.slug, { facts })} />
 
         <StoryReferences
@@ -276,6 +279,26 @@ function StoryEditor({ data, setData }: EditorProps) {
           onToggle={(id) => toggleRef("creditIds", id)}
         />
       </article>
+    </div>
+  );
+}
+
+function StoryStats({ slug, stats, onChange }: { slug: string; stats: StoryStat[]; onChange: (stats: StoryStat[]) => void }) {
+  const add = () => onChange([...stats, { id: crypto.randomUUID(), value: "", label: "" }]);
+  const update = (id: string, patch: Partial<StoryStat>) => onChange(stats.map((stat) => (stat.id === id ? { ...stat, ...patch } : stat)));
+  return (
+    <div className="visibility-box">
+      <h3>Experience figures</h3>
+      <p className="analytics-note">Headline career numbers shown in the public experience strip, e.g. 18 / Years modeling. Up to eight. Publish this section to display them.</p>
+      {!stats.length && <p className="empty-copy">No approved figures yet.</p>}
+      {stats.map((stat) => (
+        <div className="form-grid three" key={`${slug}-${stat.id}`}>
+          <Field label="Figure" value={stat.value} onChange={(v) => update(stat.id, { value: v })} placeholder="18" />
+          <Field label="Label" value={stat.label} onChange={(v) => update(stat.id, { label: v })} placeholder="Years modeling" />
+          <div className="asset-actions"><button className="danger" onClick={() => onChange(stats.filter((item) => item.id !== stat.id))}>Remove</button></div>
+        </div>
+      ))}
+      <button className="button outline" onClick={add}>+ Add figure</button>
     </div>
   );
 }

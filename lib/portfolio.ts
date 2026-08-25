@@ -160,6 +160,16 @@ export type StoryFact = {
 };
 
 /**
+ * A headline career figure rendered in the public experience strip.
+ * Additive JSONB — no migration required.
+ */
+export type StoryStat = {
+  id: string;
+  value: string;
+  label: string;
+};
+
+/**
  * The JSONB payload stored in `content_sections.content`.
  * `mediaIds` / `videoIds` / `creditIds` are lightweight references to the canonical
  * records in `media_assets`, `portfolio_videos` and `runway_credits`. Referencing a
@@ -169,6 +179,7 @@ export type StorySectionContent = {
   summary: string;
   body: string;
   facts: StoryFact[];
+  stats: StoryStat[];
   mediaIds: string[];
   videoIds: string[];
   creditIds: string[];
@@ -284,12 +295,17 @@ export const storySectionCatalog: { slug: string; title: string }[] = [
   { slug: "beauty", title: "Beauty" },
   { slug: "dubai", title: "Dubai" },
   { slug: "international-availability", title: "International Availability" },
+  // Added in the owner-authorized Phase 3 scope. Additive: content_sections is keyed by
+  // slug and rows are created on save, so no migration and no seed re-run is required.
+  { slug: "beyond-the-runway", title: "Beyond The Runway" },
+  { slug: "professional-approach", title: "Professional Approach" },
 ];
 
 export const emptyStoryContent: StorySectionContent = {
   summary: "",
   body: "",
   facts: [],
+  stats: [],
   mediaIds: [],
   videoIds: [],
   creditIds: [],
@@ -322,6 +338,15 @@ export function normalizeStoryFact(value: unknown, index = 0): StoryFact {
   };
 }
 
+export function normalizeStoryStat(value: unknown, index = 0): StoryStat {
+  const stat = (value ?? {}) as Partial<StoryStat>;
+  return {
+    id: typeof stat.id === "string" && stat.id ? stat.id : `stat-${index}`,
+    value: text(stat.value),
+    label: text(stat.label),
+  };
+}
+
 /** Coerces whatever is in JSONB into a predictable shape. Never invents content. */
 export function normalizeStoryContent(value: unknown): StorySectionContent {
   const content = (value ?? {}) as Partial<StorySectionContent>;
@@ -329,6 +354,7 @@ export function normalizeStoryContent(value: unknown): StorySectionContent {
     summary: text(content.summary),
     body: text(content.body),
     facts: Array.isArray(content.facts) ? content.facts.slice(0, 200).map(normalizeStoryFact) : [],
+    stats: Array.isArray(content.stats) ? content.stats.slice(0, 8).map(normalizeStoryStat) : [],
     mediaIds: stringList(content.mediaIds),
     videoIds: stringList(content.videoIds),
     creditIds: stringList(content.creditIds),
@@ -373,9 +399,56 @@ export function mergeStoryCatalog(sections: StorySection[]): StorySection[] {
   return [...merged, ...[...stored.values()].map((section, index) => ({ ...section, sortOrder: merged.length + index }))];
 }
 
+/**
+ * Public read helpers. These operate on an already-sanitized `PortfolioData` — i.e. the
+ * output of `toPublicPortfolio()` on public routes — so they can never surface a private
+ * section or a private media/video/credit reference.
+ */
+export function findStorySection(story: StorySection[], slug: string) {
+  return story.find((section) => section.slug === slug);
+}
+
+/** Resolves a section's media references against the (already-filtered) asset list. */
+export function storySectionMedia(section: StorySection | undefined, media: MediaAsset[]) {
+  if (!section) return [];
+  const byId = new Map(media.map((asset) => [asset.id, asset]));
+  return section.content.mediaIds
+    .map((id) => byId.get(id))
+    .filter((asset): asset is MediaAsset => asset != null);
+}
+
+export function storySectionCredits(section: StorySection | undefined, credits: Credit[]) {
+  if (!section) return [];
+  const byId = new Map(credits.map((credit) => [credit.id, credit]));
+  return section.content.creditIds
+    .map((id) => byId.get(id))
+    .filter((credit): credit is Credit => credit != null);
+}
+
+export function storySectionVideos(section: StorySection | undefined, videos: Video[]) {
+  if (!section) return [];
+  const byId = new Map(videos.map((video) => [video.id, video]));
+  return section.content.videoIds
+    .map((id) => byId.get(id))
+    .filter((video): video is Video => video != null);
+}
+
+/** The experience strip reads stats from whichever public section carries them. */
+export function publicStoryStats(story: StorySection[]) {
+  for (const section of story) {
+    if (section.content.stats.length) return section.content.stats;
+  }
+  return [];
+}
+
+/** Paragraph splitter for narrative bodies: blank line separates paragraphs. */
+export function storyParagraphs(body: string) {
+  return body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+}
+
 export function storySectionIsEmpty(section: StorySection) {
-  const { summary, body, facts, mediaIds, videoIds, creditIds } = section.content;
-  return !summary.trim() && !body.trim() && !facts.length && !mediaIds.length && !videoIds.length && !creditIds.length;
+  const { summary, body, facts, stats, mediaIds, videoIds, creditIds } = section.content;
+  return !summary.trim() && !body.trim() && !facts.length && !stats.length && !mediaIds.length && !videoIds.length && !creditIds.length;
 }
 
 /**
