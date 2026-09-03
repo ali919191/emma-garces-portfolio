@@ -9,9 +9,15 @@
 ACTIVE_PHASE:             Phase 2A — Emma Knowledge Foundation
 PHASE 1 STATUS:           COMPLETE / FROZEN
 PRODUCTION DOMAIN:        https://www.emmagarces.com
-PRODUCTION APP BASELINE:  d123982d4d5ffb6c00448ee30e157296c046a3e9
-                          "feat: activate content_sections story layer and minor-era classification"
-LAST MASTER UPDATE:       2026-08-25 (document updated; production NOT changed)
+PRODUCTION APP BASELINE:  4dabd4b5c177bb6efa1875b8ce7ba8dcf84b0d38
+                          "feat: living biography sections and approved story content"
+PRODUCTION DATA STATE:    2026-09-03 — content, media and credits published to Neon and Blob,
+                          verified live. See §16.
+AWAITING DEPLOY:          48d7cba5c642903600ae01eab217f868ad56ec26
+                          "feat: chronological runway credits, show pages, and video through
+                          the media gateway" — committed and validated, NOT yet on origin/main.
+                          Advance PRODUCTION APP BASELINE to it once Vercel has built it.
+LAST MASTER UPDATE:       2026-09-03 (production data changed; application deploy pending)
 ```
 
 **Only the ACTIVE_PHASE may be implemented** unless the user explicitly authorizes different
@@ -392,6 +398,10 @@ Visitor-intent signal is already being written to PostgreSQL and nothing current
 5. `/api/media` looks up visibility in PostgreSQL, then streams the private object. Public
    assets get `public, max-age=3600, stale-while-revalidate=86400`; private get
    `private, no-cache`.
+6. **Video uses the same gateway.** The store is private-only, so `portfolio_videos.url` holds
+   the `mediaUrl()` of the video's blob key and `findServableMedia()` resolves it back to the
+   video row. The route forwards `Range` and answers `206` so footage is seekable, and answers
+   `404` — never `500` — when a record outlives its blob. See D-021.
 
 ### Migrations
 
@@ -1124,6 +1134,40 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
 
 ---
 
+**2026-09-03 — Portfolio populated end-to-end; runway chronology and show pages implemented**
+- **Phase:** 2A content + owner-authorized limited Phase 3 public UI (ACTIVE_PHASE unchanged;
+  no Phase 2B/2C work)
+- **Production data — DONE and verified live.** All nine approved `content_sections` published;
+  `profile.bio` set from the approved About Emma copy; 26 curated images and 4 runway videos
+  ingested through the canonical private-Blob path; the 10 pre-existing assets given real
+  category, caption, photographer, designer, event and date; hero, comp-card primary and eight
+  comp-card supporting images selected; `lastPublishedAt` stamped. Production now carries
+  **36 media assets, 4 videos, 22 public credits, 9 published sections**.
+- **Credit corrections (owner-directed).** "Brasserie 19 Photo Shoot" retired from the public
+  runway list — it is an editorial shoot, and its images are published in the Editorial gallery
+  instead. Negris LeBrum "Spring/Summer 2024" corrected from September 2024 to **September 2023**.
+- **Source.** `Portfolio-20260902T175610Z-1-001.zip` (384 MB, 132 images + 15 videos), which
+  supersedes the 110/6 inventory in the 2026-08-25 entry. Originals untouched and held outside
+  the repository. `content/emma-media-plan.json` records the publication decision for every
+  asset — what it may claim, its gallery, and its minor-era classification.
+- **Application changes (committed, awaiting deploy).** Chronological ordering of public credits
+  derived from the credit's own date string; `/shows/<id>` detail pages linked only from credits
+  that resolve to media or footage; credit↔media join on designer + event + date; runway video
+  served through `/api/media` with Range/206 support; `object-fit: contain` on video frames
+  because all current footage is vertical; Motion section shows the full reel set.
+- **Migration:** none. Every change is data, additive JSONB, or view logic.
+- **Validation:** typecheck PASS · lint PASS (0/0) · **68/68 tests across 12 files** · production
+  build PASS · `git diff --check` clean. Browser-verified at 1440×900/1000 and 390×844 across
+  `/`, `/comp-card`, `/book` and two `/shows/<id>` pages: no broken images, no horizontal
+  overflow, no page errors, 15 contiguous numbered sections.
+- **Deployment:** production **data** is live. The application commit `48d7cba` is **not yet on
+  `origin/main`** — this session's git proxy refused the push and the desktop sandbox holds no
+  GitHub credentials, so the owner pushes it from their own machine. `PRODUCTION APP BASELINE`
+  therefore stays at `4dabd4b` until Vercel has built `48d7cba`.
+- **Decisions recorded:** D-019, D-020, D-021.
+
+---
+
 **2026-08-25 — Phase 2A content prepared; limited Phase 3 Living Biography implemented (local)**
 - **Phase:** 2A content + owner-authorized limited Phase 3 public UI
 - **Change:** prepared nine approved `content_sections` entries in
@@ -1327,20 +1371,20 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
 
 ## 16. Current Production State
 
-*Snapshot as of 2026-08-19. Keep current.*
+*Snapshot as of 2026-09-03. Keep current.*
 
 | Field | Value |
 |---|---|
 | **Production domain** | `https://www.emmagarces.com` |
 | **Production app baseline** | `d123982d4d5ffb6c00448ee30e157296c046a3e9` ("feat: activate content_sections story layer and minor-era classification", 2026-08-19). The latest commit that materially changed runtime behaviour, schema, data model, or deployment configuration. Documentation-only commits made after it do not advance this value (D-014) |
-| **Branch** | `main`, tracking `origin/main`, in sync |
+| **Branch** | `main`, tracking `origin/main`. **One commit ahead:** `48d7cba` is committed and validated but not pushed — see the header block |
 | **Remote** | `https://github.com/ali919191/emma-garces-portfolio.git` |
 | **Hosting** | Vercel project `emma-garces-portfolio`, Git integration deploys from `origin/main`, `nodeVersion: 24.x` |
 | **Active phase** | Phase 2A — Emma Knowledge Foundation |
 | **Architecture** | Next.js 16.3.1 / React 19.2.6 / TypeScript 5.9.3 / Tailwind 4.2.1 / Neon PostgreSQL + Drizzle 0.45.2 / private Vercel Blob 2.8.0 / NextAuth 4.24.15 GitHub OAuth |
 | **Migrations in repo** | `0000_sour_black_bolt`, `0001_uneven_krista_starr`, `0002_smart_mastermind` (all additive) |
 | **Migration state in production DB** | **`0000`, `0001` and `0002` all applied and verified.** `0002` was applied ahead of the Phase 2A deploy; production reads of `media_assets.minor_era` succeed, confirming the column exists. No seed or reset performed at any point |
-| **Tests** | 9 files, **40 / 40 passing**. typecheck, lint, and production build all passing as of the Phase 2A implementation |
+| **Tests** | 12 files, **68 / 68 passing**. typecheck, lint, and production build all passing as of 2026-09-03 |
 | **Env vars** | 11 required (see §3). No AI/model variables exist yet |
 | **Dependencies** | 7 runtime dependencies. No AI SDK, no vector store, no image/video processing library, no background job runner, no rate limiter |
 
@@ -1354,21 +1398,36 @@ JSON-LD, OG) · Vercel Web Analytics (9 events).
 · structured story facts · story→media/video/credit references · `minorEra` classification with
 Studio toggle and reusable policy helpers · public sanitization of story content.
 
-### Content state (2026-08-19) — **this drives Phase 2A sequencing**
+**Phase 3, limited scope (live since 2026-09-03):** experience strip · Selected Work · Her Story
+· career timeline · Selected Designers · Beyond The Runway · Professional Approach ·
+International — all driven entirely by `content_sections`, no hardcoded biography.
 
-The site is architecturally complete and **nearly empty of content**:
+**Awaiting the `48d7cba` deploy:** chronological credit ordering · `/shows/<id>` detail pages ·
+credit↔media association · runway video through `/api/media` with Range/206 · full reel set in
+the Motion section.
 
-- Runway: 1 image (bridal)
-- Beauty: 1 image
-- Editorial: empty ("currently in curation")
-- Digitals: empty ("currently in curation")
-- Motion/video: none ("Primary runway reel coming soon")
-- Credits: none published
-- Biography: `profile.bio` and all `content_sections` unpopulated
+### Content state (2026-09-03) — **the corpus constraint is largely lifted**
 
-**Consequences:** Phase 2D (semantic media intelligence) has no corpus. Phase 4 (Runway Vision)
-is fully blocked on footage. Phase 2B/2C are viable now because composition logic does not
-depend on corpus size. This is the primary reason Phase 2A is active.
+The site is architecturally complete and **now populated**:
+
+- Runway: 8 images · Editorial: 20 · Beauty: 2 · Digitals: 2 — **36 assets total**
+- Motion/video: 4 runway clips (primary reel: Yumi Katsura bridal, July 2026)
+- Credits: 22 published, ordered newest → oldest automatically
+- Show pages: 8 credits resolve to a `/shows/<id>` page
+- Biography: `profile.bio` set; 9 of 13 `content_sections` published
+- Hero, comp-card primary and 8 comp-card supporting images all selected
+
+**Consequences:** Phase 2D (semantic media intelligence) now has a real corpus, though a small
+one — 36 images is enough to build against, not enough to evaluate retrieval quality
+confidently. Phase 4 (Runway Vision) is **no longer fully blocked**: four clips exist, all
+vertical phone footage, 19–29 seconds each. Phase 2B/2C remain viable and remain **not
+authorized**.
+
+**Minor-era material:** 9 of the 36 published assets are classified `minorEra: true` (the 2019
+France editorial, the 2020 portfolio shoot, and the Miss Robinson presentation). They are
+published deliberately — they are Emma's own professional work — but by construction none is
+featured, none is the hero, and none appears on the comp card. `minorEraPolicy` continues to
+forbid analysis, matching and automatic publication (§5).
 
 ### Production verification status
 
@@ -1381,12 +1440,29 @@ Verified at the Phase 2A deploy (2026-08-19): `/sitemap.xml`, `/robots.txt`, sig
 `/studio` → 307 to `/auth/signin`, public `/api/portfolio` carrying a sanitized `story` key and
 a readable `minorEra` field, existing media rows intact, no raw Blob URL in the public payload.
 
-Not yet verified against production: authenticated Studio inquiry status-change flow, and the
-Studio **Story & career** editor exercised while signed in (§18 U-003).
+Verified at the 2026-09-03 content publish: `/` returns the populated portfolio with 15
+contiguous numbered sections and a hero image; `/api/portfolio` carries 22 credits, 36 assets,
+4 videos and 9 published sections with no raw Blob URL and blank asset `url`; `/book`,
+`/comp-card`, `/robots.txt`, `/sitemap.xml` all 200; signed-out `/studio` → 307.
+
+Not yet verified against production: everything in `48d7cba` (it is not deployed yet — verify
+`/shows/<id>`, credit ordering and video playback once Vercel has built it); authenticated
+Studio inquiry status-change flow; the Studio **Story & career** editor exercised while signed
+in (§18 U-003).
 
 ### Known issues
 
-- None currently open in the application.
+- **`profile.email` is empty**, so the comp card shows no booking email and `portfolioWarnings`
+  flags it. Bookings currently route through `/book` and Instagram only.
+- **No poster frames for video.** `portfolio_videos` has no poster column, so the Motion frames
+  rely on the browser painting the first frame (the mp4s carry `+faststart`, which makes that
+  cheap). Adding `poster_url` would be a one-column additive migration.
+- **Two pre-existing assets carry uncertain provenance.** The B&W bridal runway image and the
+  automotive editorial were already in production with no metadata; they are captioned
+  descriptively ("Bridal runway", "Automotive editorial") and assert no designer or venue,
+  because the source does not support one.
+- **Poshak / Indian-Bride / Hiba folders remain unpublished** — identity is still unresolved in
+  the updated source, so nothing from them is public (§15, 2026-08-25).
 
 ### Deferred items
 
@@ -1481,6 +1557,32 @@ recomposition, Casting Mode, semantic media intelligence and Runway Vision remai
 authorized.** The design constitution (§4) still binds: this extends the editorial system and
 does not redesign it. `ACTIVE_PHASE` stays **Phase 2A** — this is a scoped exception, not a
 phase advance.
+
+**D-021 · 2026-09-03 · Runway video is served through `/api/media`, not a public Blob URL.**
+The Blob store is configured private-only and rejects `access: "public"` outright, so a video
+cannot be given a direct blob URL. `portfolio_videos.url` therefore holds the `mediaUrl()` of the
+video's own blob key, and `findServableMedia()` resolves that URL back to the video record and
+re-checks its `public` flag. The route forwards the client's `Range` header and answers `206`
+with `Content-Range`, so footage is seekable. **Do not introduce a second media path**: there is
+one gateway, and it is the place visibility is enforced. `isValidUrl()` accepts root-relative
+paths for this reason; it still rejects protocol-relative (`//host`) and non-http schemes.
+
+**D-020 · 2026-09-03 · Credits and media are joined on entered metadata, not a foreign key.**
+A `/shows/<id>` page collects its assets by matching `designer` + `event` + `date` (normalized
+for case, whitespace and curly apostrophes) against the credit's `designer` + `event` + `year`;
+video matches on `designer` + `year`, since videos carry no event. This needs no migration, no
+Studio change, and survives a re-upload. **A credit only links when the join actually resolves**
+— a credit with nothing attached renders as a plain row and its URL never enters the sitemap, so
+the list cannot produce a dead end. When adding assets, mirror the credit's field values exactly
+or the show page will not find them.
+
+**D-019 · 2026-09-03 · Public credit order is derived, never stored.**
+`toPublicPortfolio()` sorts public credits newest → oldest using `creditDateValue()`, which
+collapses a free-text date ("September 2021", "July 25, 2026", "~2018–2020") into a comparable
+number. A range resolves to its latest year; a year with no month sorts mid-year; an unparseable
+value sorts last rather than corrupting the order around it. **Studio keeps its own manual
+order** — Emma never has to drag a new show into place, and the two orderings are independent by
+design.
 
 **D-018 · 2026-08-25 · Emma's public business title is `Co-Founder, HARFT AI`.**
 Use `Co-Founder, HARFT AI` as the canonical short title in structured content and in the public
