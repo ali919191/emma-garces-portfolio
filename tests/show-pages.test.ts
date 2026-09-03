@@ -176,3 +176,63 @@ describe("the media gateway serves runway footage too", () => {
     vi.unstubAllEnvs();
   });
 });
+
+describe("cover resolution and focal points", () => {
+  it("normalizes an unknown focal point instead of letting it reach CSS", async () => {
+    const { normalizeFocalPoint } = await import("../lib/portfolio");
+    expect(normalizeFocalPoint("left")).toBe("left");
+    expect(normalizeFocalPoint("right")).toBe("right");
+    expect(normalizeFocalPoint("top")).toBe("top");
+    expect(normalizeFocalPoint("diagonal")).toBe("center");
+    expect(normalizeFocalPoint(undefined)).toBe("center");
+    expect(normalizeFocalPoint(7)).toBe("center");
+  });
+
+  it("picks a designer cover from the whole library, featured first, and never a private one", async () => {
+    const { designerCoverAsset } = await import("../lib/portfolio");
+    const library = [
+      asset("plain", { designer: "Negris LeBrum" }),
+      asset("star", { designer: "negris  lebrum", featured: true }),
+      asset("private-star", { designer: "Negris LeBrum", featured: true, public: false }),
+      asset("other", { designer: "Larita Fashion", featured: true }),
+    ];
+    expect(designerCoverAsset("Negris LeBrum", library)?.id).toBe("star");
+    expect(designerCoverAsset("Larita Fashion", library)?.id).toBe("other");
+    expect(designerCoverAsset("Poshak Fashion", library)).toBeUndefined();
+    expect(designerCoverAsset("", library)).toBeUndefined();
+    expect(designerCoverAsset("Negris LeBrum", [library[2]])).toBeUndefined();
+  });
+
+  it("derives a poster path from a gateway video URL and refuses anything else", async () => {
+    const { videoPosterSrc, designerVideoPoster, mediaUrl } = await import("../lib/portfolio");
+    const url = mediaUrl("portfolio/video/2026/larita-2025.mp4");
+    expect(videoPosterSrc(url)).toBe(mediaUrl("portfolio/video/2026/larita-2025.jpg"));
+    expect(videoPosterSrc("https://example.com/a.mp4")).toBe("");
+    expect(videoPosterSrc(mediaUrl("portfolio/2026/npn-01.jpg"))).toBe("");
+    const videos = [
+      video("v1", { url, designer: "Larita Fashion", public: true }),
+      video("v2", { url: mediaUrl("portfolio/video/2026/secret.mp4"), designer: "Poshak Fashion", public: false }),
+    ];
+    expect(designerVideoPoster("larita fashion", videos)).toContain("larita-2025.jpg");
+    expect(designerVideoPoster("Poshak Fashion", videos)).toBe("");
+    expect(designerVideoPoster("Nobody", videos)).toBe("");
+  });
+
+  it("serves a poster only as public as the clip it belongs to", async () => {
+    const { savePortfolio, findServableMedia } = await import("../db/portfolio-repository");
+    const { defaultPortfolio, mediaUrl } = await import("../lib/portfolio");
+    const { vi } = await import("vitest");
+    vi.stubEnv("PORTFOLIO_DEMO_MODE", "true");
+    vi.stubEnv("NODE_ENV", "test");
+    const edited = structuredClone(defaultPortfolio);
+    edited.videos = [
+      video("open", { url: mediaUrl("portfolio/video/2026/open.mp4"), public: true }),
+      video("shut", { url: mediaUrl("portfolio/video/2026/shut.mp4"), public: false }),
+    ];
+    await savePortfolio(edited);
+    expect(await findServableMedia("portfolio/video/2026/open.jpg")).toEqual({ isPublic: true });
+    expect(await findServableMedia("portfolio/video/2026/shut.jpg")).toEqual({ isPublic: false });
+    expect(await findServableMedia("portfolio/video/2026/ghost.jpg")).toBeNull();
+    vi.unstubAllEnvs();
+  });
+});

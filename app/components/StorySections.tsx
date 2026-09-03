@@ -14,6 +14,8 @@
  */
 
 import {
+  designerCoverAsset,
+  designerVideoPoster,
   findStorySection,
   publicStoryStats,
   storyParagraphs,
@@ -70,7 +72,12 @@ export function ExperienceStrip({ story, index }: { story: StorySection[]; index
 
 export function SelectedWork({ data, index }: { data: PortfolioData; index: string }) {
   const section = findStorySection(data.story, "selected-archive");
-  const assets = storySectionMedia(section, data.media).slice(0, 12);
+  // The hero is already the largest image on the page; repeating it a screen later
+  // reads as a mistake. Overlap with the category galleries below is intended — this
+  // section is a selection from them — but the hero is not part of that selection.
+  const assets = storySectionMedia(section, data.media)
+    .filter((asset) => asset.id !== data.settings.heroMediaId)
+    .slice(0, 12);
   if (!assets.length) return null;
   return (
     <section id="selected-work" className="selected-work section-pad">
@@ -157,12 +164,12 @@ export function SelectedDesigners({ data, index }: { data: PortfolioData; index:
   const named = section.content.facts.filter((fact) => fact.kind === "designer");
   if (!credits.length && !named.length) return null;
 
-  const byCredit = new Map<string, MediaAsset[]>();
-  for (const asset of assets) {
-    const key = asset.designer || asset.event;
-    if (!key) continue;
-    byCredit.set(key, [...(byCredit.get(key) ?? []), asset]);
-  }
+  // A card's cover comes from the whole public library, not just the handful of
+  // images this section happens to reference — the library already records which
+  // designer each asset belongs to, so nothing has to be curated twice and nothing
+  // is invented. Designers with no public image keep their monogram.
+  const cover = (title: string) =>
+    designerCoverAsset(title, assets.length ? [...assets, ...data.media] : data.media);
 
   return (
     <section id="designers" className="selected-designers section-pad soft">
@@ -180,10 +187,15 @@ export function SelectedDesigners({ data, index }: { data: PortfolioData; index:
           const meta = isCredit
             ? [credit.showName || credit.event, credit.city, credit.year].filter(Boolean).join(" · ")
             : [fact.value, fact.location, fact.year].filter(Boolean).join(" · ");
-          const cover = byCredit.get(title)?.[0];
+          const art = cover(title);
+          const poster = art ? "" : designerVideoPoster(title, data.videos);
           return (
             <article key={entry.id}>
-              {cover ? <Figure asset={cover} /> : <div className="designer-mark" aria-hidden="true">{title.slice(0, 2).toUpperCase()}</div>}
+              {art
+                ? <Figure asset={art} />
+                : poster
+                  ? <figure><img className="poster-cover" src={poster} alt={`${title} — Emma Garces on the runway`} loading="lazy" /></figure>
+                  : <div className="designer-mark" aria-hidden="true">{title.slice(0, 2).toUpperCase()}</div>}
               <h3>{title}</h3>
               {meta && <p>{meta}</p>}
             </article>

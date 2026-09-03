@@ -16,6 +16,7 @@ import {
   type Video,
 } from "../../../lib/portfolio";
 import { HarftAttribution } from "../../components/HarftAttribution";
+import { ReelGrid } from "../../components/PublicPortfolio";
 
 export const dynamic = "force-dynamic";
 
@@ -78,13 +79,7 @@ export default async function ShowPage({ params }: { params: Promise<{ id: strin
 
       {videos.length > 0 && (
         <section className="show-motion" aria-label="Show video">
-          {videos.map((video) => (
-            <figure className="video-frame" key={video.id}>
-              {/\.(mp4|webm)(\?|$)/i.test(video.url)
-                ? <video controls playsInline preload="metadata" src={video.url} />
-                : <a href={video.url} target="_blank" rel="noreferrer">Play show footage <span>↗</span></a>}
-            </figure>
-          ))}
+          <ReelGrid videos={videos} />
         </section>
       )}
 

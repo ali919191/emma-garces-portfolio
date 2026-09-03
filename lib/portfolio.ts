@@ -76,6 +76,20 @@ export type Credit = {
   public: boolean;
 };
 
+/**
+ * Where a `cover` crop should anchor. Only the surfaces that crop deliberately —
+ * the hero and the comp card — consult it; galleries render at the image's own
+ * aspect ratio and never need it.
+ */
+export type FocalPoint = "center" | "top" | "bottom" | "left" | "right";
+
+export const focalPoints: FocalPoint[] = ["center", "top", "bottom", "left", "right"];
+
+/** `focal_point` is a free text column, so an unknown value must not reach CSS. */
+export function normalizeFocalPoint(value: unknown): FocalPoint {
+  return focalPoints.includes(value as FocalPoint) ? (value as FocalPoint) : "center";
+}
+
 export type MediaCategory =
   | "runway"
   | "editorial"
@@ -102,7 +116,7 @@ export type MediaAsset = {
   date: string;
   featured: boolean;
   public: boolean;
-  focalPoint: "center" | "top" | "bottom";
+  focalPoint: FocalPoint;
   /**
    * Marks material captured while Emma was a minor. Classification only — it never
    * publishes or unpublishes anything on its own. See `minorEraPolicy`.
@@ -706,6 +720,50 @@ export function creditMeta(credit: Credit) {
   return [credit.event, credit.showName, [credit.city, credit.country].filter(Boolean).join(", "), credit.year]
     .map((part) => part.trim())
     .filter(Boolean);
+}
+
+/**
+ * The strongest image to represent a designer on a card.
+ *
+ * Resolves against the whole media library rather than a story section's explicit
+ * `mediaIds`, because a section lists a handful of picks while the library already
+ * records which designer each asset belongs to. Featured wins, then library order.
+ * Returns undefined when the designer has no public image — the card then shows its
+ * restrained monogram rather than a broken tile. No association is invented: the
+ * match is on the designer name the asset itself carries.
+ */
+export function designerCoverAsset(name: string, media: MediaAsset[]): MediaAsset | undefined {
+  const designer = joinToken(name);
+  if (!designer) return undefined;
+  const matches = media.filter((asset) => asset.public && joinToken(asset.designer) === designer);
+  return matches.find((asset) => asset.featured) ?? matches[0];
+}
+
+/**
+ * A designer with footage but no stills still deserves a real card. The poster frame
+ * of that designer's public clip is canonical media — the video record already names
+ * the designer — so it stands in rather than a monogram. Returns "" when the designer
+ * has no public video.
+ */
+export function designerVideoPoster(name: string, videos: Video[]): string {
+  const designer = joinToken(name);
+  if (!designer) return "";
+  const match = videos.find((video) => video.public && joinToken(video.designer) === designer);
+  return match ? videoPosterSrc(match.url) : "";
+}
+
+/**
+ * The poster frame that sits beside a video in the blob store, under the same key
+ * with a .jpg extension. Lets a reel card show a real frame while the video itself
+ * stays `preload="none"`. Returns "" when the URL is not one of our gateway paths;
+ * a missing poster simply 404s and the browser falls back to a blank frame.
+ */
+export function videoPosterSrc(url: string): string {
+  const match = /^\/api\/media\?key=(.+)$/.exec(url);
+  if (!match) return "";
+  const key = decodeURIComponent(match[1]);
+  if (!key.toLowerCase().endsWith(".mp4")) return "";
+  return mediaUrl(`${key.slice(0, -4)}.jpg`);
 }
 
 export function isPortfolioData(value: unknown): value is PortfolioData {

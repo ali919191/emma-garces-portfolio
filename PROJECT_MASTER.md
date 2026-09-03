@@ -9,15 +9,16 @@
 ACTIVE_PHASE:             Phase 2A — Emma Knowledge Foundation
 PHASE 1 STATUS:           COMPLETE / FROZEN
 PRODUCTION DOMAIN:        https://www.emmagarces.com
-PRODUCTION APP BASELINE:  4dabd4b5c177bb6efa1875b8ce7ba8dcf84b0d38
-                          "feat: living biography sections and approved story content"
-PRODUCTION DATA STATE:    2026-09-03 — content, media and credits published to Neon and Blob,
-                          verified live. See §16.
-AWAITING DEPLOY:          48d7cba5c642903600ae01eab217f868ad56ec26
+PRODUCTION APP BASELINE:  48d7cba5c642903600ae01eab217f868ad56ec26
                           "feat: chronological runway credits, show pages, and video through
-                          the media gateway" — committed and validated, NOT yet on origin/main.
-                          Advance PRODUCTION APP BASELINE to it once Vercel has built it.
-LAST MASTER UPDATE:       2026-09-03 (production data changed; application deploy pending)
+                          the media gateway" — deployed and verified 2026-09-03.
+PRODUCTION DATA STATE:    2026-09-03 — content, media, video and credits published to Neon and
+                          Blob, verified live. See §16.
+AWAITING DEPLOY:          the visual-presentation fix (reel grid, intrinsic-ratio galleries,
+                          designer covers). Committed and QA'd, not yet built by Vercel.
+                          Advance PRODUCTION APP BASELINE to it once the build is live.
+LAST MASTER UPDATE:       2026-09-03 (visual fixes committed; baseline still names the last
+                          commit Vercel has actually built)
 ```
 
 **Only the ACTIVE_PHASE may be implemented** unless the user explicitly authorizes different
@@ -1150,7 +1151,7 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
   supersedes the 110/6 inventory in the 2026-08-25 entry. Originals untouched and held outside
   the repository. `content/emma-media-plan.json` records the publication decision for every
   asset — what it may claim, its gallery, and its minor-era classification.
-- **Application changes (committed, awaiting deploy).** Chronological ordering of public credits
+- **Application changes (deployed 2026-09-03).** Chronological ordering of public credits
   derived from the credit's own date string; `/shows/<id>` detail pages linked only from credits
   that resolve to media or footage; credit↔media join on designer + event + date; runway video
   served through `/api/media` with Range/206 support; `object-fit: contain` on video frames
@@ -1160,11 +1161,55 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
   build PASS · `git diff --check` clean. Browser-verified at 1440×900/1000 and 390×844 across
   `/`, `/comp-card`, `/book` and two `/shows/<id>` pages: no broken images, no horizontal
   overflow, no page errors, 15 contiguous numbered sections.
-- **Deployment:** production **data** is live. The application commit `48d7cba` is **not yet on
-  `origin/main`** — this session's git proxy refused the push and the desktop sandbox holds no
-  GitHub credentials, so the owner pushes it from their own machine. `PRODUCTION APP BASELINE`
-  therefore stays at `4dabd4b` until Vercel has built `48d7cba`.
+- **Deployment:** **deployed and verified 2026-09-03.** `48d7cba` (app) and `aa4a31a` (docs)
+  were pushed by the owner from their own machine — this session's git proxy refused the push
+  and the desktop sandbox holds no GitHub credentials, so the commits were handed over as a git
+  bundle. Vercel built them; `PRODUCTION APP BASELINE` now points at `48d7cba`.
+- **Video sequencing note.** The four runway videos were published to Neon **private** ahead of
+  the deploy and flipped public immediately after it. Their URLs are `/api/media` gateway paths
+  that only the new `findServableMedia()` can resolve; had they been public before the deploy,
+  the live Motion section would have shown an empty player. **Publish data that depends on
+  undeployed code as private, then flip it after the build.**
+- **CDN caching vs Range.** The route answers `206` on a cache MISS, but Vercel's edge serves a
+  cached video as a full `200` and ignores `Range` (`x-vercel-cache: HIT`). Clips are 8–12 MB, so
+  a browser buffers the whole file and seeks locally; this is acceptable, not a defect, but it
+  means production does not universally answer `206`.
 - **Decisions recorded:** D-019, D-020, D-021.
+
+---
+
+**2026-09-03 — Visual presentation fixed: reel grid, intrinsic-ratio galleries, designer covers**
+- **Phase:** presentation only. No new content, no schema change, no migration.
+- **Why.** The first populated deploy exposed a layout built for landscape media. The Motion
+  section put a 9:16 clip inside a full-width 16:9 frame — a 1238×697 slab holding a ~390px
+  video — which read as a giant background layer with the reel strip floating over it. The
+  galleries forced every image into a fixed 720px or 560px tile with `object-fit: cover`,
+  cutting faces off portraits (Beauty lost chins and foreheads) and gutting landscapes (the
+  automotive editorial kept 57% of its frame, the NYFW runway shot 50%).
+- **Fixes.**
+  - Motion and show pages now render each clip as its own 9:16 card in a plain grid —
+    `preload="none"`, native controls, no autoplay, no absolute positioning, nothing that can
+    become a section background. A poster frame stored beside each clip gives the card an image
+    without downloading the video.
+  - Galleries, Selected Work and show galleries render at each image's own aspect ratio: a
+    portrait stays portrait, a landscape stays landscape, nothing is cropped. Column count
+    follows the image count so a two-image gallery is two-up rather than three-up with a hole.
+  - Designer cards resolve a cover from the whole public library by the designer name the asset
+    already carries, then fall back to that designer's video poster. Six of fourteen now show
+    real imagery; the other eight have no public media and keep their monogram.
+  - The hero no longer repeats inside Selected Work a screen below itself.
+- **Focal points.** The vocabulary gained `left` and `right`, Studio offers all five, and
+  `normalizeFocalPoint()` stops an unknown column value reaching CSS. **No asset's stored focal
+  point was changed** — every one of the nine assets used in a cropping surface was already
+  correct. The cropping was the layout's fault, not the metadata's.
+- **Validation:** typecheck PASS · lint PASS (0/0) · **72/72 tests across 12 files** · production
+  build PASS · `git diff --check` clean. Browser QA at 1440×900 and 390×844 across the homepage,
+  `/comp-card`, `/book` and four `/shows/<id>` pages — 14 page/viewport combinations, all 200,
+  no broken images, no stretched images, no overflow, no page errors, no 4xx, no Blob URL in the
+  DOM, 16 contiguous section numbers, 8 live show links.
+- **Bug found and fixed in passing:** `findServableMedia()` returned early in demo mode instead
+  of falling through to the poster lookup, so posters resolved in production but not in tests.
+- **Decisions recorded:** D-022.
 
 ---
 
@@ -1376,15 +1421,15 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
 | Field | Value |
 |---|---|
 | **Production domain** | `https://www.emmagarces.com` |
-| **Production app baseline** | `d123982d4d5ffb6c00448ee30e157296c046a3e9` ("feat: activate content_sections story layer and minor-era classification", 2026-08-19). The latest commit that materially changed runtime behaviour, schema, data model, or deployment configuration. Documentation-only commits made after it do not advance this value (D-014) |
-| **Branch** | `main`, tracking `origin/main`. **One commit ahead:** `48d7cba` is committed and validated but not pushed — see the header block |
+| **Production app baseline** | `48d7cba5c642903600ae01eab217f868ad56ec26` ("feat: chronological runway credits, show pages, and video through the media gateway", deployed 2026-09-03). The latest commit that materially changed runtime behaviour, schema, data model, or deployment configuration. Documentation-only commits made after it do not advance this value (D-014) |
+| **Branch** | `main`, tracking `origin/main`, in sync |
 | **Remote** | `https://github.com/ali919191/emma-garces-portfolio.git` |
 | **Hosting** | Vercel project `emma-garces-portfolio`, Git integration deploys from `origin/main`, `nodeVersion: 24.x` |
 | **Active phase** | Phase 2A — Emma Knowledge Foundation |
 | **Architecture** | Next.js 16.3.1 / React 19.2.6 / TypeScript 5.9.3 / Tailwind 4.2.1 / Neon PostgreSQL + Drizzle 0.45.2 / private Vercel Blob 2.8.0 / NextAuth 4.24.15 GitHub OAuth |
 | **Migrations in repo** | `0000_sour_black_bolt`, `0001_uneven_krista_starr`, `0002_smart_mastermind` (all additive) |
 | **Migration state in production DB** | **`0000`, `0001` and `0002` all applied and verified.** `0002` was applied ahead of the Phase 2A deploy; production reads of `media_assets.minor_era` succeed, confirming the column exists. No seed or reset performed at any point |
-| **Tests** | 12 files, **68 / 68 passing**. typecheck, lint, and production build all passing as of 2026-09-03 |
+| **Tests** | 12 files, **72 / 72 passing**. typecheck, lint, and production build all passing as of 2026-09-03 |
 | **Env vars** | 11 required (see §3). No AI/model variables exist yet |
 | **Dependencies** | 7 runtime dependencies. No AI SDK, no vector store, no image/video processing library, no background job runner, no rate limiter |
 
@@ -1402,9 +1447,9 @@ Studio toggle and reusable policy helpers · public sanitization of story conten
 · career timeline · Selected Designers · Beyond The Runway · Professional Approach ·
 International — all driven entirely by `content_sections`, no hardcoded biography.
 
-**Awaiting the `48d7cba` deploy:** chronological credit ordering · `/shows/<id>` detail pages ·
-credit↔media association · runway video through `/api/media` with Range/206 · full reel set in
-the Motion section.
+**Live since the 2026-09-03 deploy:** chronological credit ordering · `/shows/<id>` detail pages
+(8 of them) · credit↔media association · runway video through `/api/media` · full reel set in the
+Motion section.
 
 ### Content state (2026-09-03) — **the corpus constraint is largely lifted**
 
@@ -1445,10 +1490,20 @@ contiguous numbered sections and a hero image; `/api/portfolio` carries 22 credi
 4 videos and 9 published sections with no raw Blob URL and blank asset `url`; `/book`,
 `/comp-card`, `/robots.txt`, `/sitemap.xml` all 200; signed-out `/studio` → 307.
 
-Not yet verified against production: everything in `48d7cba` (it is not deployed yet — verify
-`/shows/<id>`, credit ordering and video playback once Vercel has built it); authenticated
-Studio inquiry status-change flow; the Studio **Story & career** editor exercised while signed
-in (§18 U-003).
+Verified after the 2026-09-03 deploy of `48d7cba`: `/` and `/comp-card` render the full
+populated portfolio; `/api/portfolio` returns 22 credits **already ordered newest → oldest**
+(Poshak Aug 2026 → Yumi Katsura Jul 2026 → Anna Gupta Nov 2025 → …), 36 assets, 4 public videos
+whose URLs are `/api/media` gateway paths, and no raw Blob URL; `/sitemap.xml` lists 8
+`/shows/<id>` entries; a real show id returns 200 and a bogus one 404; `/api/media` answers
+`accept-ranges: bytes` and serves each of the four videos complete and byte-exact (verified with
+`ffprobe`: h264, 720×1280, and frame 1 decodes from the production bytes).
+
+Not yet verified against production: authenticated Studio inquiry status-change flow; the Studio
+**Story & career** editor exercised while signed in (§18 U-003); **in-browser H.264 playback**
+— the QA browser available to this environment is a Chromium build without an H.264 decoder
+(`canPlayType('video/mp4; codecs="avc1.42E01E"')` returns empty), so playback was confirmed at
+the byte and container level rather than by a rendered frame. Confirm visually in any normal
+browser.
 
 ### Known issues
 
@@ -1557,6 +1612,15 @@ recomposition, Casting Mode, semantic media intelligence and Runway Vision remai
 authorized.** The design constitution (§4) still binds: this extends the editorial system and
 does not redesign it. `ACTIVE_PHASE` stays **Phase 2A** — this is a scoped exception, not a
 phase advance.
+
+**D-022 · 2026-09-03 · Galleries render at the image's own aspect ratio; `cover` is reserved.**
+A portfolio exists to show the composition the photographer framed, so gallery tiles size
+themselves to the image rather than the other way round. `object-fit: cover` is now used only
+where a crop is a deliberate format decision — the hero, the comp card, and the uniform designer
+cards — and those are the only surfaces that consult `focalPoint`. **Do not reintroduce fixed
+tile heights in a gallery.** The trade-off accepted: without stored intrinsic dimensions the
+tiles have no reserved height, so lazily-loaded images below the fold shift slightly as they
+arrive. Storing width/height would need a migration and was judged not worth it at 36 assets.
 
 **D-021 · 2026-09-03 · Runway video is served through `/api/media`, not a public Blob URL.**
 The Blob store is configured private-only and rejects `access: "public"` outright, so a video

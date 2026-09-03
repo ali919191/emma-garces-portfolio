@@ -94,7 +94,9 @@ img { max-width: 100%; display: block; }
 .comp-contact { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .comp-contact a { border-bottom: 1px solid var(--line); padding-bottom: 4px; font: italic 18px var(--serif); }
 .comp-support { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 40px; }
-.comp-support img { width: 100%; height: 280px; object-fit: cover; background: #1c1a18; }
+/* A comp card is a fixed-format sheet, so these tiles crop on purpose — but at the
+   source's own portrait ratio, which keeps far more of each look than a 280px band. */
+.comp-support img { width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; background: #1c1a18; }
 .comp-studio-preview { margin-top: 40px; background: white; border: 1px solid #e0dcd5; padding: 24px; }
 .inquiry-layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; }
 .inquiry-list { background: white; border: 1px solid #e0dcd5; }
@@ -127,11 +129,15 @@ img { max-width: 100%; display: block; }
 .section-heading .section-index { align-self: flex-start; min-width: 120px; }
 .section-heading p:last-child { max-width: 280px; color: var(--muted); line-height: 1.6; }
 .light { color: #f4f0e9; }
-.media-mosaic { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; align-items: start; }
-.media-mosaic figure { margin: 0; grid-column: span 4; }
-.media-mosaic figure.portrait-lead { grid-column: span 6; }
-.media-mosaic img { width: 100%; height: min(64vw, 720px); object-fit: cover; background: #25221f; }
-.media-mosaic figure:not(.portrait-lead) img { height: min(42vw, 560px); }
+/* Galleries render every image at its own aspect ratio. Forcing a fixed tile height
+   with object-fit:cover was cutting faces off portraits and gutting landscapes; a
+   portfolio has to show the composition the photographer framed. */
+.media-mosaic { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.media-mosaic.count-1 { grid-template-columns: minmax(0, 680px); }
+.media-mosaic.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.media-mosaic figure { margin: 0; }
+.media-mosaic img { display: block; width: 100%; height: auto; background: var(--warm); }
+.dark-section .media-mosaic img, .video-section .media-mosaic img { background: #25221f; }
 .media-mosaic figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0 20px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #918b82; }
 .gallery-empty, .video-empty { border: 1px solid #383530; min-height: 420px; display: grid; place-content: center; text-align: center; background: repeating-linear-gradient(135deg, transparent 0 26px, rgba(255,255,255,.018) 26px 27px); }
 .gallery-empty span, .video-empty span { font: 44px var(--serif); color: #46413b; }
@@ -139,11 +145,20 @@ img { max-width: 100%; display: block; }
 .gallery-section.soft { background: #e5dfd6; }
 .gallery-section .gallery-empty { border-color: var(--line); background: repeating-linear-gradient(135deg, transparent 0 26px, rgba(0,0,0,.018) 26px 27px); }
 .gallery-section .gallery-empty span { color: #c5bdb2; }
-.video-frame { aspect-ratio: 16/9; max-height: 80vh; background: #25221f; display: grid; place-items: center; }
-/* Runway footage is shot vertically. `contain` keeps the whole frame — a cropped
-   walk loses the shoes and the silhouette, which is the entire point of the clip. */
-.video-frame video { width: 100%; height: 100%; object-fit: contain; background: transparent; }
-.video-frame a { font: italic 34px var(--serif); border-bottom: 1px solid #777; padding: 10px; }
+/* Runway footage is shot vertically. Each clip is its own 9:16 card in a plain grid:
+   no full-bleed frame, no absolute positioning, no autoplay, nothing that could read
+   as a section background. `contain` keeps the whole walk — heads and shoes included. */
+.reel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start; }
+/* Three across by default; four clips take one clean row rather than leaving an orphan. */
+.reel-grid.count-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.reel-grid.count-1 { grid-template-columns: minmax(0, 380px); }
+.reel-grid.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.reel-grid figure { margin: 0; }
+.reel-grid video, .reel-grid .reel-link { display: block; width: 100%; aspect-ratio: 9 / 16; background: #100f0d; }
+.reel-grid video { object-fit: contain; }
+.reel-grid .reel-link { display: grid; place-items: center; text-align: center; font: italic 20px var(--serif); color: #f1ede6; }
+.reel-grid figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #918b82; }
+.show-page .reel-grid figcaption { color: var(--muted); }
 .credits-list { border-top: 1px solid var(--line); }
 .credits-list article { display: grid; grid-template-columns: 60px 1fr auto; gap: 24px; align-items: center; padding: 26px 0; border-bottom: 1px solid var(--line); }
 .credits-list article > span, .credits-list article > p { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
@@ -381,14 +396,13 @@ img { max-width: 100%; display: block; }
   .profile-section { grid-template-columns: 1fr; gap: 50px; min-height: auto; }
   .section-heading { display: block; }
   .section-heading h2 { margin-bottom: 20px; }
-  .media-mosaic { display: block; }
-  .media-mosaic figure { margin-bottom: 20px; }
-  .media-mosaic img, .media-mosaic figure:not(.portrait-lead) img { height: 122vw; max-height: 700px; }
+  .media-mosaic, .media-mosaic.count-1, .media-mosaic.count-2 { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .work-grid figure.wide { grid-column: span 1; }
   .credits-list article { grid-template-columns: 35px 1fr; }
   .credits-list article > p { grid-column: 2; margin: 0; }
   .comp-screen, .inquiry-layout { grid-template-columns: 1fr; }
   .comp-support { grid-template-columns: 1fr 1fr; }
-  .comp-hero img, .comp-support img { height: 92vw; max-height: 640px; }
+  .comp-hero img { height: 124vw; max-height: 620px; }
   .inquiry-detail dl { grid-template-columns: 1fr; }
   .hero-actions { margin-top: 22px; }
   .studio-sidebar { transform: translateX(-100%); transition: .25s; }
@@ -435,8 +449,7 @@ img { max-width: 100%; display: block; }
 .work-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 48px; }
 .work-grid figure { margin: 0; position: relative; }
 .work-grid figure.wide { grid-column: span 2; }
-.work-grid img { width: 100%; height: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
-.work-grid figure.wide img { aspect-ratio: 3 / 2; }
+.work-grid img { display: block; width: 100%; height: auto; background: var(--warm); }
 .work-grid figcaption { display: flex; justify-content: space-between; gap: 16px; padding-top: 10px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 
 /* C · Her story */
@@ -466,6 +479,9 @@ img { max-width: 100%; display: block; }
 .designer-grid article { display: flex; flex-direction: column; gap: 14px; }
 .designer-grid figure { margin: 0; }
 .designer-grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; }
+/* A poster frame is 9:16, so a 3:4 card crops it top and bottom. Anchor to the top:
+   on a runway frame that is where the head is. */
+.designer-grid img.poster-cover { object-position: 50% 0%; }
 .designer-grid figcaption { display: none; }
 .designer-mark { aspect-ratio: 3 / 4; display: grid; place-items: center; background: var(--warm); font: italic 44px/1 var(--serif); color: #8d857a; letter-spacing: -.04em; }
 .designer-grid h3 { margin: 0; font: normal 19px/1.25 var(--serif); letter-spacing: -.01em; }
@@ -533,12 +549,6 @@ img { max-width: 100%; display: block; }
 .show-link:hover { border-bottom-color: var(--accent); }
 .show-link:hover span { transform: translateX(4px); }
 
-.video-caption { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0 0; font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: #918b82; }
-.video-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 46px; }
-.video-strip figure { margin: 0; }
-.video-strip video { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #1c1a17; }
-.video-strip a { display: grid; place-items: center; aspect-ratio: 16/9; background: #25221f; font: italic 20px var(--serif); }
-.video-strip figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: #918b82; }
 
 .show-page { min-height: 100svh; background: var(--paper); color: var(--ink); padding: 0 7vw 90px; }
 .show-page .platform-top a:not(.wordmark) { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
@@ -547,11 +557,10 @@ img { max-width: 100%; display: block; }
 .show-intro h1 { margin: 18px 0 22px; font: normal clamp(48px, 6.6vw, 104px)/.9 var(--serif); letter-spacing: -.055em; }
 .show-meta { display: flex; flex-wrap: wrap; gap: 10px 26px; margin: 0; padding: 0; list-style: none; }
 .show-meta li { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.show-motion { display: grid; gap: 20px; padding: 60px 0 0; }
-.show-motion .video-frame { background: #25221f; }
+.show-motion { padding: 60px 0 0; }
 .show-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; align-items: start; padding: 60px 0 0; }
 .show-gallery figure { margin: 0; }
-.show-gallery img { width: 100%; height: min(42vw, 560px); object-fit: cover; background: var(--warm); }
+.show-gallery img { display: block; width: 100%; height: auto; background: var(--warm); }
 .show-gallery figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0 0; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .show-footer { display: flex; flex-wrap: wrap; gap: 18px 34px; align-items: center; margin-top: 76px; padding-top: 30px; border-top: 1px solid var(--line); }
 .show-footer a { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
@@ -559,14 +568,13 @@ img { max-width: 100%; display: block; }
 
 .show-page .harft-attribution { margin-top: 54px; }
 
-@media (max-width: 900px) {
-  .video-strip { grid-template-columns: repeat(2, 1fr); }
-  .show-gallery img { height: min(70vw, 520px); }
+@media (max-width: 1100px) {
+  .reel-grid, .reel-grid.count-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (max-width: 560px) {
-  .video-strip { grid-template-columns: 1fr; }
+@media (max-width: 620px) {
+  /* One 9:16 card per row on a phone, capped so it never becomes a full-height slab. */
+  .reel-grid, .reel-grid.count-2, .reel-grid.count-4 { grid-template-columns: minmax(0, 360px); justify-content: center; }
   .show-gallery { grid-template-columns: 1fr; }
-  .show-gallery img { height: min(120vw, 560px); }
   .show-footer { gap: 14px; }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { creditHasShowPage, publicAssetSrc, storyParagraphs, findStorySection, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { creditHasShowPage, publicAssetSrc, storyParagraphs, findStorySection, videoPosterSrc, type MediaAsset, type PortfolioData, type Video } from "../../lib/portfolio";
 import { BeyondTheRunway, CareerTimeline, ExperienceStrip, HerStory, InternationalDirection, ProfessionalApproach, SelectedDesigners, SelectedWork } from "./StorySections";
 import { analyticsEvents, trackEvent } from "../../lib/analytics";
 import { HarftAttribution } from "./HarftAttribution";
@@ -20,9 +20,10 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
   const publicMedia = useMemo(() => data.media.filter((asset) => asset.public), [data.media]);
   const hero = publicMedia.find((asset) => asset.id === data.settings.heroMediaId) ?? publicMedia.find((asset) => asset.featured);
   const publicCredits = data.credits.filter((credit) => credit.public && credit.priority !== "hidden");
+  // The primary reel leads, the rest follow in library order. Every clip renders as
+  // the same kind of card — none of them becomes a section backdrop.
   const publicVideos = data.videos.filter((video) => video.public);
-  const primaryVideo = publicVideos.find((video) => video.primary) ?? publicVideos[0];
-  const secondaryVideos = publicVideos.filter((video) => video.id !== primaryVideo?.id);
+  const reels = [...publicVideos].sort((a, b) => Number(b.primary) - Number(a.primary));
   const p = data.profile;
   const heroStat = data.story.flatMap((section) => section.content.stats)[0];
   const about = findStorySection(data.story, "about-emma");
@@ -146,28 +147,7 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
           <p className="section-index">{idx("video")} / Motion</p>
           <h2>Runway reel</h2>
         </div>
-        {primaryVideo ? (
-          <>
-            <div className="video-frame">
-              {primaryVideo.url.match(/\.(mp4|webm)(\?|$)/i) ? <video controls playsInline preload="metadata" src={primaryVideo.url} /> : <a href={primaryVideo.url} target="_blank" rel="noreferrer">Play primary runway reel <span>↗</span></a>}
-            </div>
-            {(primaryVideo.label || primaryVideo.designer || primaryVideo.year) && (
-              <p className="video-caption"><span>{primaryVideo.label || primaryVideo.designer}</span><span>{primaryVideo.year}</span></p>
-            )}
-            {secondaryVideos.length > 0 && (
-              <div className="video-strip">
-                {secondaryVideos.map((video) => (
-                  <figure key={video.id}>
-                    {video.url.match(/\.(mp4|webm)(\?|$)/i)
-                      ? <video controls playsInline preload="metadata" src={video.url} />
-                      : <a href={video.url} target="_blank" rel="noreferrer">Play footage <span>↗</span></a>}
-                    <figcaption><span>{video.label || video.designer}</span><span>{video.year}</span></figcaption>
-                  </figure>
-                ))}
-              </div>
-            )}
-          </>
-        ) : <div className="video-empty"><span>RUNWAY / MOTION</span><p>Primary runway reel coming soon.</p></div>}
+        {reels.length ? <ReelGrid videos={reels} /> : <div className="video-empty"><span>RUNWAY / MOTION</span><p>Primary runway reel coming soon.</p></div>}
       </section>
 
       <section id="credits" className="credits-section section-pad">
@@ -237,14 +217,43 @@ function MediaMosaic({ assets, emptyLabel, gallery }: { assets: MediaAsset[]; em
     if (gallery && assets.length) trackEvent(analyticsEvents.galleryView, { gallery });
   }, [assets.length, gallery]);
   if (!assets.length) return <div className="gallery-empty"><span>IMAGE SELECTION</span><p>{emptyLabel}</p></div>;
+  // Every tile renders at the image's own aspect ratio: a portrait stays portrait, a
+  // landscape stays landscape, and nothing is cropped to fit a grid cell. The column
+  // count adapts to how many images a gallery actually holds.
   return (
     <div className={`media-mosaic count-${Math.min(assets.length, 5)}`}>
-      {assets.map((asset, index) => (
-        <figure key={asset.id} className={index % 5 === 0 ? "portrait-lead" : ""}>
+      {assets.map((asset) => (
+        <figure key={asset.id}>
           <AssetImage asset={asset} />
           {(asset.caption || asset.photographer) && <figcaption><span>{asset.caption}</span><span>{asset.photographer ? `Photo · ${asset.photographer}` : ""}</span></figcaption>}
         </figure>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Runway footage is shot vertically on a phone. Each clip gets its own 9:16 card in a
+ * plain grid — no absolute positioning, no full-bleed frame, no autoplay, and nothing
+ * that could read as a section background. `preload="none"` keeps the page cheap; the
+ * poster frame beside each clip in the blob store gives the card something to show.
+ */
+export function ReelGrid({ videos }: { videos: Video[] }) {
+  return (
+    <div className={`reel-grid count-${Math.min(videos.length, 4)}`}>
+      {videos.map((video) => {
+        const poster = videoPosterSrc(video.url);
+        return (
+          <figure key={video.id}>
+            {/\.(mp4|webm)(\?|$)/i.test(video.url)
+              ? <video controls playsInline preload="none" poster={poster || undefined} src={video.url} />
+              : <a className="reel-link" href={video.url} target="_blank" rel="noreferrer">Play footage <span aria-hidden="true">↗</span></a>}
+            {(video.label || video.designer || video.year) && (
+              <figcaption><span>{video.label || video.designer}</span><span>{video.year}</span></figcaption>
+            )}
+          </figure>
+        );
+      })}
     </div>
   );
 }

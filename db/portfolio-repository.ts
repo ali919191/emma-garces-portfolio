@@ -1,7 +1,7 @@
 import { asc, eq, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { MediaCategory, PortfolioData, Profile } from "../lib/portfolio";
-import { defaultPortfolio, mediaUrl, normalizeSettings, normalizeStory, normalizeStoryContent } from "../lib/portfolio";
+import { defaultPortfolio, mediaUrl, normalizeFocalPoint, normalizeSettings, normalizeStory, normalizeStoryContent } from "../lib/portfolio";
 import { getDb } from "./client";
 import { contentSections, mediaAssets, portfolioSettings, portfolioVideos, profiles, runwayCredits } from "./schema";
 
@@ -88,7 +88,7 @@ export async function readPortfolio(): Promise<PortfolioData> {
       featured: asset.featured,
       public: asset.isPublic,
       minorEra: asset.minorEra,
-      focalPoint: asset.focalPoint,
+      focalPoint: normalizeFocalPoint(asset.focalPoint),
     })),
     videos: videos.map((video) => ({
       id: video.id,
@@ -246,9 +246,29 @@ export async function findServableMedia(storageKey: string) {
   if (!url) return null;
   if (demoMode()) {
     const video = demoPortfolio.videos.find((item) => item.url === url);
-    return video ? { isPublic: video.public } : null;
+    if (video) return { isPublic: video.public };
+    return findVideoPoster(storageKey);
   }
   const [video] = await getDb().select().from(portfolioVideos).where(eq(portfolioVideos.url, url)).limit(1);
+  if (video) return { isPublic: video.isPublic };
+  return findVideoPoster(storageKey);
+}
+
+/**
+ * A poster frame lives beside its video under the same key with a .jpg extension.
+ * It is not a record of its own — it inherits the video's visibility exactly, so a
+ * private clip's first frame stays private. Anything that is not a .jpg sibling of
+ * a real video row resolves to nothing.
+ */
+async function findVideoPoster(storageKey: string) {
+  if (!storageKey.toLowerCase().endsWith(".jpg")) return null;
+  const videoUrl = mediaUrl(`${storageKey.slice(0, -4)}.mp4`);
+  if (!videoUrl) return null;
+  if (demoMode()) {
+    const video = demoPortfolio.videos.find((item) => item.url === videoUrl);
+    return video ? { isPublic: video.public } : null;
+  }
+  const [video] = await getDb().select().from(portfolioVideos).where(eq(portfolioVideos.url, videoUrl)).limit(1);
   return video ? { isPublic: video.isPublic } : null;
 }
 

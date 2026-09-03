@@ -110,7 +110,7 @@ export const mediaAssets = pgTable("media_assets", {
   // Minor-era classification. Additive and conservative: existing rows default to false.
   // Classification only — it does not affect publication, which stays governed by isPublic.
   minorEra: boolean("minor_era").notNull().default(false),
-  focalPoint: text("focal_point").$type<"center" | "top" | "bottom">().notNull().default("center"),
+  focalPoint: text("focal_point").$type<"center" | "top" | "bottom" | "left" | "right">().notNull().default("center"),
   sortOrder: integer("sort_order").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
