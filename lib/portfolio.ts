@@ -569,9 +569,14 @@ export function toPublicPortfolio(data: PortfolioData): PortfolioData {
     : publicMedia.find((asset) => asset.featured)?.id ?? "";
   const settings = normalizeSettings(data.settings);
   const publicIds = new Set(publicMedia.map((asset) => asset.id));
-  const publicCredits = data.credits
-    .filter((credit) => credit.public && credit.priority !== "hidden")
-    .map((credit) => ({ ...credit, venue: "", notes: "", designerBase: "" }));
+  // Public credits are always chronological, newest first. Studio keeps its own
+  // manual order; the public site derives ordering from the credit date so a new
+  // show never has to be dragged into place.
+  const publicCredits = sortCreditsNewestFirst(
+    data.credits
+      .filter((credit) => credit.public && credit.priority !== "hidden")
+      .map((credit) => ({ ...credit, venue: "", notes: "", designerBase: "" })),
+  );
   const publicVideos = data.videos.filter((video) => video.public);
   const publicCreditIds = new Set(publicCredits.map((credit) => credit.id));
   const publicVideoIds = new Set(publicVideos.map((video) => video.id));
@@ -600,6 +605,107 @@ export function toPublicPortfolio(data: PortfolioData): PortfolioData {
       compCardMediaIds: settings.compCardMediaIds.filter((id) => publicIds.has(id)),
     },
   };
+}
+
+/* ────────────────────────── Credit chronology ──────────────────────────
+ * Runway credits are entered by hand, so `year` is a human string rather than a
+ * date: "September 2021", "July 25, 2026", "~2018–2020", "2021–2023". The public
+ * site must always read newest → oldest without Emma having to reorder rows in
+ * Studio, so ordering is derived from that string rather than stored.
+ *
+ * The parse is deliberately forgiving and never throws: an unparseable value
+ * sorts last (oldest) instead of corrupting the order of everything else.
+ */
+
+const monthNames = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+];
+
+/**
+ * Collapses a free-text credit date into a comparable YYYYMMDD number.
+ * A range ("2021–2023") resolves to its latest year, because that is when the
+ * body of work most recently happened. A year with no month sorts mid-year so it
+ * never jumps ahead of a dated show in the same year.
+ */
+export function creditDateValue(year: string): number {
+  if (typeof year !== "string") return 0;
+  const value = year.toLowerCase();
+  const years = [...value.matchAll(/\b(?:19|20)\d{2}\b/g)].map((match) => Number(match[0]));
+  if (!years.length) return 0;
+  const resolvedYear = Math.max(...years);
+  const monthIndex = monthNames.findIndex((month) => value.includes(month));
+  const month = monthIndex >= 0 ? monthIndex + 1 : 7;
+  const withoutYears = value.replace(/\b(?:19|20)\d{2}\b/g, " ");
+  const dayMatch = withoutYears.match(/\b(\d{1,2})\b/);
+  const day = monthIndex >= 0 && dayMatch ? Math.min(Number(dayMatch[1]), 31) : 15;
+  return resolvedYear * 10000 + month * 100 + day;
+}
+
+/** Newest first, stable for ties, non-mutating. */
+export function sortCreditsNewestFirst<T extends { year: string }>(items: T[]): T[] {
+  return items
+    .map((item, index) => ({ item, index, value: creditDateValue(item.year) }))
+    .sort((a, b) => (b.value - a.value) || (a.index - b.index))
+    .map((entry) => entry.item);
+}
+
+/* ─────────────────────── Credit ↔ media association ───────────────────────
+ * A credit and the assets from that show are joined on the metadata Emma
+ * already enters — designer, event and date — rather than on a new foreign key,
+ * so the association survives re-uploads and needs no migration. The join is
+ * exact after normalization; a partially filled asset simply does not link,
+ * which is why a credit with no matching asset renders no link at all.
+ */
+
+function joinToken(value: string) {
+  return typeof value === "string"
+    ? value.toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, " ").trim()
+    : "";
+}
+
+function creditJoinKey(credit: Pick<Credit, "designer" | "event" | "year">) {
+  return [joinToken(credit.designer), joinToken(credit.event), joinToken(credit.year)];
+}
+
+/** Public assets photographed at this credit's show, in library order. */
+export function creditMedia(credit: Credit, media: MediaAsset[]): MediaAsset[] {
+  const [designer, event, year] = creditJoinKey(credit);
+  if (!designer || !event || !year) return [];
+  return media.filter((asset) =>
+    joinToken(asset.designer) === designer &&
+    joinToken(asset.event) === event &&
+    joinToken(asset.date) === year);
+}
+
+/** Public video captured at this credit's show. Videos carry no event field. */
+export function creditVideos(credit: Credit, videos: Video[]): Video[] {
+  const designer = joinToken(credit.designer);
+  const year = joinToken(credit.year);
+  if (!designer || !year) return [];
+  return videos.filter((video) => joinToken(video.designer) === designer && joinToken(video.year) === year);
+}
+
+/** True when a credit has something to show — the only case that earns a link. */
+export function creditHasShowPage(credit: Credit, media: MediaAsset[], videos: Video[]) {
+  return creditMedia(credit, media).length > 0 || creditVideos(credit, videos).length > 0;
+}
+
+/** Credits that resolve to a show page, newest first. Used by the sitemap. */
+export function creditsWithShowPages(data: PortfolioData): Credit[] {
+  return sortCreditsNewestFirst(
+    data.credits.filter((credit) => credit.public && credit.priority !== "hidden" && creditHasShowPage(credit, data.media, data.videos)),
+  );
+}
+
+export function creditHeadline(credit: Credit) {
+  return credit.designer || credit.event || "Runway";
+}
+
+export function creditMeta(credit: Credit) {
+  return [credit.event, credit.showName, [credit.city, credit.country].filter(Boolean).join(", "), credit.year]
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
 export function isPortfolioData(value: unknown): value is PortfolioData {
@@ -639,6 +745,9 @@ export function instagramHandle(url: string) {
 
 export function isValidUrl(value: string) {
   if (!value) return true;
+  // A root-relative path is valid: the blob store is private, so a video's URL is
+  // its own `/api/media?key=…` gateway path rather than an absolute blob URL.
+  if (value.startsWith("/")) return !value.startsWith("//");
   try {
     const parsed = new URL(value);
     return parsed.protocol === "http:" || parsed.protocol === "https:";

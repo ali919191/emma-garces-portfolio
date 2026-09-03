@@ -51,3 +51,7 @@ yarn-error.log*
 /files/_audit_sheets/
 /emma-audit/
 /_to_delete/
+/files/_ingest/
+/emma-audit2/
+/scripts/_tmp/
+/scripts/_env.ts

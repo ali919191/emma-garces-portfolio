@@ -230,6 +230,28 @@ export async function findMedia(storageKey: string) {
   return asset ?? null;
 }
 
+/**
+ * Resolves the visibility of anything `/api/media` is asked to serve.
+ *
+ * The blob store is private-only, so runway footage has to come through the same
+ * gateway as photography. A video is not a `media_assets` row — the schema models
+ * it as an arbitrary URL — so it is matched by the URL it was given, which is the
+ * `mediaUrl()` of its own blob key. Photography is checked first; a video is only
+ * consulted when no asset owns the key.
+ */
+export async function findServableMedia(storageKey: string) {
+  const asset = await findMedia(storageKey);
+  if (asset) return { isPublic: asset.isPublic };
+  const url = mediaUrl(storageKey);
+  if (!url) return null;
+  if (demoMode()) {
+    const video = demoPortfolio.videos.find((item) => item.url === url);
+    return video ? { isPublic: video.public } : null;
+  }
+  const [video] = await getDb().select().from(portfolioVideos).where(eq(portfolioVideos.url, url)).limit(1);
+  return video ? { isPublic: video.isPublic } : null;
+}
+
 export async function deleteMediaRecord(storageKey: string) {
   if (demoMode()) {
     demoPortfolio.media = demoPortfolio.media.filter((item) => item.key !== storageKey);

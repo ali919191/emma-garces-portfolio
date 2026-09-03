@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { publicAssetSrc, storyParagraphs, findStorySection, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
+import { creditHasShowPage, publicAssetSrc, storyParagraphs, findStorySection, type MediaAsset, type PortfolioData } from "../../lib/portfolio";
 import { BeyondTheRunway, CareerTimeline, ExperienceStrip, HerStory, InternationalDirection, ProfessionalApproach, SelectedDesigners, SelectedWork } from "./StorySections";
 import { analyticsEvents, trackEvent } from "../../lib/analytics";
 import { HarftAttribution } from "./HarftAttribution";
@@ -20,7 +20,9 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
   const publicMedia = useMemo(() => data.media.filter((asset) => asset.public), [data.media]);
   const hero = publicMedia.find((asset) => asset.id === data.settings.heroMediaId) ?? publicMedia.find((asset) => asset.featured);
   const publicCredits = data.credits.filter((credit) => credit.public && credit.priority !== "hidden");
-  const primaryVideo = data.videos.find((video) => video.primary && video.public) ?? data.videos.find((video) => video.public);
+  const publicVideos = data.videos.filter((video) => video.public);
+  const primaryVideo = publicVideos.find((video) => video.primary) ?? publicVideos[0];
+  const secondaryVideos = publicVideos.filter((video) => video.id !== primaryVideo?.id);
   const p = data.profile;
   const heroStat = data.story.flatMap((section) => section.content.stats)[0];
   const about = findStorySection(data.story, "about-emma");
@@ -145,9 +147,26 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
           <h2>Runway reel</h2>
         </div>
         {primaryVideo ? (
-          <div className="video-frame">
-            {primaryVideo.url.match(/\.(mp4|webm)(\?|$)/i) ? <video controls playsInline src={primaryVideo.url} /> : <a href={primaryVideo.url} target="_blank" rel="noreferrer">Play primary runway reel <span>↗</span></a>}
-          </div>
+          <>
+            <div className="video-frame">
+              {primaryVideo.url.match(/\.(mp4|webm)(\?|$)/i) ? <video controls playsInline preload="metadata" src={primaryVideo.url} /> : <a href={primaryVideo.url} target="_blank" rel="noreferrer">Play primary runway reel <span>↗</span></a>}
+            </div>
+            {(primaryVideo.label || primaryVideo.designer || primaryVideo.year) && (
+              <p className="video-caption"><span>{primaryVideo.label || primaryVideo.designer}</span><span>{primaryVideo.year}</span></p>
+            )}
+            {secondaryVideos.length > 0 && (
+              <div className="video-strip">
+                {secondaryVideos.map((video) => (
+                  <figure key={video.id}>
+                    {video.url.match(/\.(mp4|webm)(\?|$)/i)
+                      ? <video controls playsInline preload="metadata" src={video.url} />
+                      : <a href={video.url} target="_blank" rel="noreferrer">Play footage <span>↗</span></a>}
+                    <figcaption><span>{video.label || video.designer}</span><span>{video.year}</span></figcaption>
+                  </figure>
+                ))}
+              </div>
+            )}
+          </>
         ) : <div className="video-empty"><span>RUNWAY / MOTION</span><p>Primary runway reel coming soon.</p></div>}
       </section>
 
@@ -155,13 +174,22 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
         <div className="section-heading"><p className="section-index">{idx("credits")} / Credits</p><h2>Selected runway</h2></div>
         {publicCredits.length ? (
           <div className="credits-list">
-            {publicCredits.map((credit, index) => (
-              <article key={credit.id}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div><h3>{credit.designer || "Designer to be confirmed"}</h3><p>{[credit.event, credit.showName].filter(Boolean).join(" · ")}</p></div>
-                <p>{[credit.city, credit.country, credit.year].filter(Boolean).join(", ")}</p>
-              </article>
-            ))}
+            {publicCredits.map((credit, index) => {
+              // Only a credit that actually has photography or footage becomes a
+              // link. Everything else stays a plain row, so there are no dead ends.
+              const hasShow = creditHasShowPage(credit, publicMedia, data.videos.filter((video) => video.public));
+              return (
+                <article key={credit.id} className={hasShow ? "has-show" : ""}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <h3>{credit.designer || "Designer to be confirmed"}</h3>
+                    <p>{[credit.event, credit.showName].filter(Boolean).join(" · ")}</p>
+                    {hasShow && <a className="show-link" href={`/shows/${credit.id}`}>View show <span aria-hidden="true">→</span></a>}
+                  </div>
+                  <p>{[credit.city, credit.country, credit.year].filter(Boolean).join(", ")}</p>
+                </article>
+              );
+            })}
           </div>
         ) : <p className="empty-copy">Verified runway credits will appear here after Emma adds the designer and show details.</p>}
       </section>

@@ -132,3 +132,27 @@ describe("story sections respect the privacy boundary", () => {
     expect(document.body.innerHTML).not.toContain("Unapproved draft copy.");
   });
 });
+
+describe("runway credits link to their show", () => {
+  function creditRow(id: string, over: Partial<import("../lib/portfolio").Credit> = {}) {
+    return {
+      id, event: "New York Fashion Week", designer: "Negris LeBrum", showName: "", city: "New York",
+      country: "USA", year: "September 2021", venue: "", notes: "", designerBase: "",
+      priority: "standard" as const, verified: true, public: true, ...over,
+    };
+  }
+
+  it("shows a link only for a credit that has media, and lists newest first", () => {
+    const data: PortfolioData = {
+      ...structuredClone(defaultPortfolio),
+      media: [asset("shot", { designer: "Negris LeBrum", event: "New York Fashion Week", date: "September 2021" })],
+      credits: [creditRow("linked"), creditRow("bare", { year: "June 2025", designer: "Larita Fashion", event: "Larita Fashion" })],
+    };
+    render(<PublicPortfolio initialData={toPublicPortfolio(data)} />);
+    const rows = [...document.querySelectorAll(".credits-list article")];
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain("Larita Fashion");
+    expect(rows[0].querySelector(".show-link")).toBeNull();
+    expect(rows[1].querySelector(".show-link")?.getAttribute("href")).toBe("/shows/linked");
+  });
+});
