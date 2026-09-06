@@ -732,11 +732,16 @@ export function creditMeta(credit: Credit) {
  * restrained monogram rather than a broken tile. No association is invented: the
  * match is on the designer name the asset itself carries.
  */
-export function designerCoverAsset(name: string, media: MediaAsset[]): MediaAsset | undefined {
+export function designerCoverAsset(name: string, media: MediaAsset[], placed?: Set<string>): MediaAsset | undefined {
   const designer = joinToken(name);
   if (!designer) return undefined;
   const matches = media.filter((asset) => asset.public && joinToken(asset.designer) === designer);
-  return matches.find((asset) => asset.featured) ?? matches[0];
+  const pick = (pool: MediaAsset[]) => pool.find((asset) => asset.featured) ?? pool[0];
+  // Prefer a frame the homepage has not already spent, so a designer card earns its
+  // place instead of echoing the gallery above it. Falling back to a shown asset is
+  // still better than a monogram when the designer genuinely has legitimate media.
+  const unspent = placed ? matches.filter((asset) => !placed.has(asset.id)) : matches;
+  return pick(unspent) ?? pick(matches);
 }
 
 /**
@@ -764,6 +769,92 @@ export function videoPosterSrc(url: string): string {
   const key = decodeURIComponent(match[1]);
   if (!key.toLowerCase().endsWith(".mp4")) return "";
   return mediaUrl(`${key.slice(0, -4)}.jpg`);
+}
+
+/* ───────────────────────── Homepage curation ─────────────────────────
+ * The homepage is an edit, not an archive. Two rules produce it:
+ *
+ *   1. An asset appears at most once. The hero claims first, then Selected Work,
+ *      then each gallery in order. Detail surfaces — /shows/<id>, the comp card,
+ *      Studio — are unaffected; they read the library directly.
+ *   2. No single shoot dominates. Assets are grouped by the look they show
+ *      (designer + event + date + caption) and galleries take one per shoot per
+ *      round, so a run reads as a mix of work rather than one set printed end to
+ *      end. The per-shoot ceiling is counted across the whole page, so a frame
+ *      promoted into Selected Work reduces what its shoot may still show below.
+ *
+ * Nothing here changes a record. An asset left off the homepage stays public and
+ * keeps appearing on its show page, the comp card and the public API.
+ */
+
+export type GallerySpec = {
+  key: string;
+  categories: MediaCategory[];
+  /** Most images this gallery may show. */
+  limit: number;
+  /** Most frames of one look the whole homepage may show. */
+  maxPerShoot: number;
+};
+
+export type HomepageCuration = {
+  hero?: MediaAsset;
+  selectedWork: MediaAsset[];
+  galleries: Record<string, MediaAsset[]>;
+  /** Ids already spoken for, so later surfaces can avoid repeating them. */
+  placed: Set<string>;
+};
+
+/** Identifies the look an asset shows. Two frames of one look share a key. */
+export function mediaShootKey(asset: MediaAsset): string {
+  const key = [asset.designer, asset.event, asset.date, asset.caption].map(joinToken).join("|");
+  return key.replace(/\|/g, "") ? key : `asset:${asset.id}`;
+}
+
+export function curateHomepage(data: PortfolioData, specs: GallerySpec[], selectedWorkLimit = 6): HomepageCuration {
+  const publicMedia = data.media.filter((asset) => asset.public);
+  const byId = new Map(publicMedia.map((asset) => [asset.id, asset]));
+  const placed = new Set<string>();
+  const shootCount = new Map<string, number>();
+  const claim = (asset: MediaAsset) => {
+    placed.add(asset.id);
+    const key = mediaShootKey(asset);
+    shootCount.set(key, (shootCount.get(key) ?? 0) + 1);
+    return asset;
+  };
+
+  const hero = publicMedia.find((asset) => asset.id === data.settings.heroMediaId)
+    ?? publicMedia.find((asset) => asset.featured);
+  if (hero) claim(hero);
+
+  const archive = findStorySection(data.story, "selected-archive");
+  const selectedWork = (archive?.content.mediaIds ?? [])
+    .map((id) => byId.get(id))
+    .filter((asset): asset is MediaAsset => Boolean(asset) && !placed.has(asset!.id))
+    .slice(0, selectedWorkLimit)
+    .map(claim);
+
+  const galleries: Record<string, MediaAsset[]> = {};
+  for (const spec of specs) {
+    const pool = publicMedia.filter((asset) => spec.categories.includes(asset.category) && !placed.has(asset.id));
+    const shoots = new Map<string, MediaAsset[]>();
+    for (const asset of pool) {
+      const key = mediaShootKey(asset);
+      shoots.set(key, [...(shoots.get(key) ?? []), asset]);
+    }
+    const taken: MediaAsset[] = [];
+    // Round-robin across shoots: one frame each per pass, so the run reads as a mix.
+    for (let round = 0; round < spec.maxPerShoot && taken.length < spec.limit; round++) {
+      for (const [key, queue] of shoots) {
+        if (taken.length >= spec.limit) break;
+        const next = queue[round];
+        if (!next || (shootCount.get(key) ?? 0) >= spec.maxPerShoot) continue;
+        taken.push(claim(next));
+      }
+    }
+    galleries[spec.key] = taken;
+  }
+
+  return { hero, selectedWork, galleries, placed };
 }
 
 export function isPortfolioData(value: unknown): value is PortfolioData {

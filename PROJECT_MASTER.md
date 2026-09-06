@@ -14,9 +14,9 @@ PRODUCTION APP BASELINE:  48d7cba5c642903600ae01eab217f868ad56ec26
                           the media gateway" — deployed and verified 2026-09-03.
 PRODUCTION DATA STATE:    2026-09-03 — content, media, video and credits published to Neon and
                           Blob, verified live. See §16.
-AWAITING DEPLOY:          the visual-presentation fix (reel grid, intrinsic-ratio galleries,
-                          designer covers). Committed and QA'd, not yet built by Vercel.
-                          Advance PRODUCTION APP BASELINE to it once the build is live.
+AWAITING DEPLOY:          the visual-presentation fix and the editorial curation pass.
+                          Committed and QA'd, not yet built by Vercel. Advance
+                          PRODUCTION APP BASELINE to it once the build is live.
 LAST MASTER UPDATE:       2026-09-03 (visual fixes committed; baseline still names the last
                           commit Vercel has actually built)
 ```
@@ -1213,6 +1213,50 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
 
 ---
 
+**2026-09-03 — Editorial curation: one appearance per asset, sections with distinct jobs**
+- **Phase:** presentation and content curation. No schema change, no migration, no record deleted.
+- **The problem.** The populated homepage showed 36 image slots for 28 distinct photographs.
+  The hero reappeared in two sections below it; seven images sat in both Selected Work and a
+  category gallery; Editorial printed all eight frames of the Brasserie 19 shoot in sequence;
+  Beauty was two frames of one yellow dress; and "Digitals / Polaroids" was labelling a styled
+  studio shoot as casting digitals.
+- **The rule.** `curateHomepage()` now assigns every asset to at most one homepage slot — hero
+  first, then Selected Work, then each gallery — and groups assets by the look they show
+  (designer + event + date + caption) so a gallery takes one frame per shoot per pass. The
+  per-shoot ceiling counts across the whole page, so promoting a frame into Selected Work
+  reduces what its shoot may still show below. Detail surfaces are untouched: `/shows/<id>`,
+  the comp card, Studio and the public API all read the library directly.
+- **Result.** 24 unique images on the homepage, one deliberate reuse (below), zero accidental
+  repeats. Hero 1 · Selected Work 6 · Runway 5 · Editorial 10 (2 Brasserie 19, six shoots
+  interleaved) · Portrait / Studio 2. Desktop page length 32,510 → 25,706 px; mobile 52,648 →
+  35,143 px.
+- **Sections.** Beauty and Digitals merged into **Portrait / Studio** — two frames of one dress
+  is not a beauty section and a styled shoot is not a casting digital. Section count 16 → 15.
+- **The one justified reuse.** Coral Castillo's designer card repeats `bell-01`, her only public
+  image. `designerCoverAsset()` prefers a frame the page has not spent, falls back to the
+  designer's video poster, and only then to a shown asset — a real image still beats a monogram
+  when legitimate media exists. Six designers now carry real covers (two of them recovered from
+  frames the galleries were not using); eight keep their monogram because no public media exists.
+- **Captions** follow one convention: `Designer — Project/Show, City, Year`, unknown parts
+  omitted, photographer in its own field. Two frames of one look share a caption on purpose —
+  that is the signal the curator reads.
+- **Narrative.** The Profile opening and the Her Story close were trimmed of show-by-show
+  enumeration that the career timeline, the runway credits and the designer list already carry.
+  **No approved fact was dropped** — every named show remains in `modeling-journey` facts, the
+  22 credits and the 14 designer entries.
+- **Validation:** typecheck PASS · lint PASS (0/0) · **78/78 tests across 12 files** · production
+  build PASS · `git diff --check` clean. QA at 1440×900 and 390×844 across the homepage,
+  `/comp-card`, `/book` and four show pages: all 200, no broken or stretched images, no overflow,
+  no page errors, no 4xx, no Blob URL in the DOM, 15 contiguous section numbers, 8 live show links.
+- **Rejected along the way:** a CSS multi-column (masonry) flow packs tighter than a grid, but it
+  balances on zero-height boxes while lazily-loaded images are still arriving and left thousands
+  of pixels of dead space. Reverted to grid, and Selected Work's six are ordered so each row
+  pairs like orientations instead. Storing intrinsic dimensions would fix it properly and needs
+  a migration — see D-022.
+- **Decisions recorded:** D-023.
+
+---
+
 **2026-08-25 — Phase 2A content prepared; limited Phase 3 Living Biography implemented (local)**
 - **Phase:** 2A content + owner-authorized limited Phase 3 public UI
 - **Change:** prepared nine approved `content_sections` entries in
@@ -1429,7 +1473,7 @@ remembering**, and their own SHA is not recorded — see §14 and D-014.
 | **Architecture** | Next.js 16.3.1 / React 19.2.6 / TypeScript 5.9.3 / Tailwind 4.2.1 / Neon PostgreSQL + Drizzle 0.45.2 / private Vercel Blob 2.8.0 / NextAuth 4.24.15 GitHub OAuth |
 | **Migrations in repo** | `0000_sour_black_bolt`, `0001_uneven_krista_starr`, `0002_smart_mastermind` (all additive) |
 | **Migration state in production DB** | **`0000`, `0001` and `0002` all applied and verified.** `0002` was applied ahead of the Phase 2A deploy; production reads of `media_assets.minor_era` succeed, confirming the column exists. No seed or reset performed at any point |
-| **Tests** | 12 files, **72 / 72 passing**. typecheck, lint, and production build all passing as of 2026-09-03 |
+| **Tests** | 12 files, **78 / 78 passing**. typecheck, lint, and production build all passing as of 2026-09-03 |
 | **Env vars** | 11 required (see §3). No AI/model variables exist yet |
 | **Dependencies** | 7 runtime dependencies. No AI SDK, no vector store, no image/video processing library, no background job runner, no rate limiter |
 
@@ -1455,7 +1499,10 @@ Motion section.
 
 The site is architecturally complete and **now populated**:
 
-- Runway: 8 images · Editorial: 20 · Beauty: 2 · Digitals: 2 — **36 assets total**
+- **36 assets in the library; 26 appear on the homepage, each exactly once.** Homepage edit:
+  hero 1 · Selected Work 6 · Runway 5 · Editorial 10 · Portrait / Studio 2 · designer covers 2.
+  The other 10 (six Brasserie 19 frames, four Negris LeBrum frames, one Grid Show frame, one
+  studio frame) stay public and serve the show pages, comp card and public API — see D-023
 - Motion/video: 4 runway clips (primary reel: Yumi Katsura bridal, July 2026)
 - Credits: 22 published, ordered newest → oldest automatically
 - Show pages: 8 credits resolve to a `/shows/<id>` page
@@ -1612,6 +1659,18 @@ recomposition, Casting Mode, semantic media intelligence and Runway Vision remai
 authorized.** The design constitution (§4) still binds: this extends the editorial system and
 does not redesign it. `ACTIVE_PHASE` stays **Phase 2A** — this is a scoped exception, not a
 phase advance.
+
+**D-023 · 2026-09-03 · An asset appears at most once on the homepage.**
+`curateHomepage()` owns the whole page's media placement: hero, then Selected Work, then each
+gallery, each claiming from what is left. Assets are grouped by the look they show — designer +
+event + date + **caption** — and a gallery takes one frame per shoot per pass, with the ceiling
+counted page-wide. Two consequences worth keeping in mind. **Captions are load-bearing:** giving
+two frames the same caption tells the curator they are the same look, and giving them different
+captions tells it they are not. **The homepage is an edit, not an index:** an asset it leaves out
+is still public and still serves its show page, the comp card and the public API — do not
+"fix" a missing image by adding it back to a section. The single sanctioned exception is a
+designer card falling back to an already-shown asset when that designer has no other public
+media; a monogram would be worse.
 
 **D-022 · 2026-09-03 · Galleries render at the image's own aspect ratio; `cover` is reserved.**
 A portfolio exists to show the composition the photographer framed, so gallery tiles size

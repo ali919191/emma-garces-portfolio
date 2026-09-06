@@ -38,10 +38,10 @@ function Figure({ asset, className = "" }: { asset: MediaAsset; className?: stri
         style={{ objectPosition: asset.focalPoint }}
         loading="lazy"
       />
-      {(asset.caption || asset.designer) && (
+      {(asset.caption || asset.photographer) && (
         <figcaption>
           <span>{asset.caption}</span>
-          <span>{asset.designer}</span>
+          <span>{asset.photographer ? `Photo · ${asset.photographer}` : ""}</span>
         </figcaption>
       )}
     </figure>
@@ -70,14 +70,9 @@ export function ExperienceStrip({ story, index }: { story: StorySection[]; index
 
 /* ─────────────────────────── D · Selected work ─────────────────────────── */
 
-export function SelectedWork({ data, index }: { data: PortfolioData; index: string }) {
+/** Assets are chosen by `curateHomepage()`, which has already claimed them page-wide. */
+export function SelectedWork({ assets, data, index }: { assets: MediaAsset[]; data: PortfolioData; index: string }) {
   const section = findStorySection(data.story, "selected-archive");
-  // The hero is already the largest image on the page; repeating it a screen later
-  // reads as a mistake. Overlap with the category galleries below is intended — this
-  // section is a selection from them — but the hero is not part of that selection.
-  const assets = storySectionMedia(section, data.media)
-    .filter((asset) => asset.id !== data.settings.heroMediaId)
-    .slice(0, 12);
   if (!assets.length) return null;
   return (
     <section id="selected-work" className="selected-work section-pad">
@@ -87,8 +82,8 @@ export function SelectedWork({ data, index }: { data: PortfolioData; index: stri
         {section?.content.summary && <p>{section.content.summary}</p>}
       </div>
       <div className="work-grid">
-        {assets.map((asset, i) => (
-          <Figure key={asset.id} asset={asset} className={i % 5 === 0 ? "wide" : ""} />
+        {assets.map((asset) => (
+          <Figure key={asset.id} asset={asset} />
         ))}
       </div>
     </section>
@@ -156,11 +151,10 @@ export function CareerTimeline({ data, index }: { data: PortfolioData; index: st
 
 /* ─────────────────────────── F · Selected designers & shows ─────────────────────────── */
 
-export function SelectedDesigners({ data, index }: { data: PortfolioData; index: string }) {
+export function SelectedDesigners({ data, placed, index }: { data: PortfolioData; placed?: Set<string>; index: string }) {
   const section = findStorySection(data.story, "designers");
   if (!section) return null;
   const credits = storySectionCredits(section, data.credits);
-  const assets = storySectionMedia(section, data.media);
   const named = section.content.facts.filter((fact) => fact.kind === "designer");
   if (!credits.length && !named.length) return null;
 
@@ -168,8 +162,7 @@ export function SelectedDesigners({ data, index }: { data: PortfolioData; index:
   // images this section happens to reference — the library already records which
   // designer each asset belongs to, so nothing has to be curated twice and nothing
   // is invented. Designers with no public image keep their monogram.
-  const cover = (title: string) =>
-    designerCoverAsset(title, assets.length ? [...assets, ...data.media] : data.media);
+  const cover = (title: string) => designerCoverAsset(title, data.media, placed);
 
   return (
     <section id="designers" className="selected-designers section-pad soft">

@@ -6,6 +6,8 @@ import {
   creditMeta,
   creditVideos,
   creditsWithShowPages,
+  curateHomepage,
+  normalizeStoryContent,
   defaultPortfolio,
   sortCreditsNewestFirst,
   toPublicPortfolio,
@@ -234,5 +236,79 @@ describe("cover resolution and focal points", () => {
     expect(await findServableMedia("portfolio/video/2026/shut.jpg")).toEqual({ isPublic: false });
     expect(await findServableMedia("portfolio/video/2026/ghost.jpg")).toBeNull();
     vi.unstubAllEnvs();
+  });
+});
+
+describe("homepage curation", () => {
+  const specs = [
+    { key: "runway", categories: ["runway" as const], limit: 8, maxPerShoot: 2 },
+    { key: "editorial", categories: ["editorial" as const], limit: 4, maxPerShoot: 2 },
+  ];
+
+  function library(): PortfolioData {
+    const shot = (id: string, over: Partial<MediaAsset>) => asset(id, over);
+    const source = structuredClone(defaultPortfolio);
+    source.media = [
+      shot("hero", { category: "runway", designer: "D", event: "Show", date: "2025", caption: "Hero look" }),
+      shot("r-a1", { category: "runway", designer: "A", event: "A show", date: "2024", caption: "A look" }),
+      shot("r-a2", { category: "runway", designer: "A", event: "A show", date: "2024", caption: "A look" }),
+      shot("r-a3", { category: "runway", designer: "A", event: "A show", date: "2024", caption: "A look" }),
+      shot("r-b1", { category: "runway", designer: "B", event: "B show", date: "2023", caption: "B look" }),
+      shot("e-c1", { category: "editorial", event: "C shoot", date: "2022", caption: "C look" }),
+      shot("e-c2", { category: "editorial", event: "C shoot", date: "2022", caption: "C look" }),
+      shot("e-c3", { category: "editorial", event: "C shoot", date: "2022", caption: "C look" }),
+      shot("e-d1", { category: "editorial", event: "D shoot", date: "2021", caption: "D look" }),
+      shot("e-private", { category: "editorial", public: false, event: "E", date: "2020", caption: "E look" }),
+    ];
+    source.settings = { ...source.settings, heroMediaId: "hero" };
+    source.story = [{
+      slug: "selected-archive", title: "Selected Work", public: true, sortOrder: 0,
+      content: normalizeStoryContent({ mediaIds: ["hero", "r-a1", "e-d1"] }),
+    }];
+    return source;
+  }
+
+  it("never places the same asset twice, and never places the hero again", () => {
+    const c = curateHomepage(library(), specs);
+    const ids = [c.hero!.id, ...c.selectedWork.map((a) => a.id), ...Object.values(c.galleries).flat().map((a) => a.id)];
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(c.selectedWork.map((a) => a.id)).not.toContain("hero");
+    expect(Object.values(c.galleries).flat().map((a) => a.id)).not.toContain("hero");
+  });
+
+  it("caps a run and interleaves shoots instead of printing one set end to end", () => {
+    const c = curateHomepage(library(), specs);
+    // r-a1 was promoted to Selected Work, so its shoot has one of its two slots left.
+    expect(c.galleries.runway.map((a) => a.id)).toEqual(["r-a2", "r-b1"]);
+    // C shoot leads, D follows, then C's second frame — a mix, not C C C.
+    expect(c.galleries.editorial.map((a) => a.id)).toEqual(["e-c1", "e-c2"]);
+  });
+
+  it("respects the limit even when the pool is larger", () => {
+    const c = curateHomepage(library(), [{ key: "runway", categories: ["runway"], limit: 2, maxPerShoot: 5 }]);
+    expect(c.galleries.runway).toHaveLength(2);
+  });
+
+  it("never places a private asset", () => {
+    const c = curateHomepage(library(), specs);
+    expect(c.placed.has("e-private")).toBe(false);
+  });
+
+  it("groups two frames of one look and separates distinct ones", async () => {
+    const { mediaShootKey } = await import("../lib/portfolio");
+    const a = asset("a", { designer: "D", event: "E", date: "2020", caption: "Studio portrait" });
+    const b = asset("b", { designer: "D", event: "E", date: "2020", caption: "Studio portrait" });
+    const c = asset("c", { designer: "D", event: "E", date: "2020", caption: "Exterior" });
+    expect(mediaShootKey(a)).toBe(mediaShootKey(b));
+    expect(mediaShootKey(a)).not.toBe(mediaShootKey(c));
+    expect(mediaShootKey(asset("bare"))).toBe("asset:bare");
+  });
+
+  it("prefers a designer cover the homepage has not already spent", async () => {
+    const { designerCoverAsset } = await import("../lib/portfolio");
+    const pool = [asset("shown", { designer: "A", featured: true }), asset("spare", { designer: "A" })];
+    expect(designerCoverAsset("A", pool, new Set(["shown"]))?.id).toBe("spare");
+    // With every frame already shown, a real image still beats a monogram.
+    expect(designerCoverAsset("A", pool, new Set(["shown", "spare"]))?.id).toBe("shown");
   });
 });

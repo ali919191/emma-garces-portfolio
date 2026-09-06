@@ -1,201 +1,540 @@
 {
-  "_meta": {
-    "purpose": "Owner-approved Phase 2A content, shaped exactly like StorySection[] on PortfolioData.story. Enter through Studio -> Story & career, or import via an authorized step. Nothing here is published: every section ships public=false and must be published deliberately.",
-    "generated": "2026-08-25",
-    "authority": "Owner decisions of 25 Aug 2026 (PROJECT_MASTER D-016). Facts drawn from Emma's interview DOCX; no facts invented.",
-    "notPublished": "All sections have public=false. Media/video/credit reference arrays are intentionally empty until asset identity is confirmed and assets are uploaded."
+ "_meta": {
+  "purpose": "Owner-approved Phase 2A content, shaped exactly like StorySection[] on PortfolioData.story. Enter through Studio -> Story & career, or import via an authorized step. Nothing here is published: every section ships public=false and must be published deliberately.",
+  "generated": "2026-08-25",
+  "authority": "Owner decisions of 25 Aug 2026 (PROJECT_MASTER D-016). Facts drawn from Emma's interview DOCX; no facts invented.",
+  "notPublished": "All sections have public=false. Media/video/credit reference arrays are intentionally empty until asset identity is confirmed and assets are uploaded.",
+  "curation": "2026-09-03: the Profile opening and the Her Story close were trimmed of show-by-show enumeration. Every named show remains in the modeling-journey facts (the career timeline), the runway credits and the designer list — nothing approved was dropped."
+ },
+ "story": [
+  {
+   "slug": "about-emma",
+   "title": "About Emma",
+   "public": false,
+   "sortOrder": 0,
+   "content": {
+    "summary": "An international runway model with eighteen years in fashion — from children's presentations in Houston to New York Fashion Week, couture and bridal runways, and an intentional expansion into Dubai.",
+    "body": "Emma Garces works independently across runway, couture, bridal and editorial — from New York Fashion Week to couture presentations in Houston, with Paris Fashion Week and editorial work in France, and virtual participation in Milan.\n\nEighteen years after her first runway, she is expanding toward Dubai and international representation.",
+    "stats": [
+     {
+      "id": "stat-years",
+      "value": "18",
+      "label": "Years modeling"
+     },
+     {
+      "id": "stat-shows",
+      "value": "20+",
+      "label": "Runway productions"
+     },
+     {
+      "id": "stat-designers",
+      "value": "19",
+      "label": "Designers & houses"
+     },
+     {
+      "id": "stat-photographers",
+      "value": "10+",
+      "label": "Photographers"
+     }
+    ],
+    "facts": [],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
   },
-  "story": [
-    {
-      "slug": "about-emma",
-      "title": "About Emma",
-      "public": false,
-      "sortOrder": 0,
-      "content": {
-        "summary": "An international runway model with eighteen years in fashion — from children's presentations in Houston to New York Fashion Week, couture and bridal runways, and an intentional expansion into Dubai.",
-        "body": "Emma Garces first stepped onto a runway as a child in Houston, and began pursuing modeling seriously at thirteen. Eighteen years after those first shows, she works independently across runway, couture, bridal and editorial — from New York Fashion Week to couture presentations in Houston, with Paris Fashion Week and editorial work in France, and virtual participation in Milan.\n\nShe is currently expanding toward Dubai and international representation.",
-        "stats": [
-          { "id": "stat-years", "value": "18", "label": "Years modeling" },
-          { "id": "stat-shows", "value": "20+", "label": "Runway productions" },
-          { "id": "stat-designers", "value": "19", "label": "Designers & houses" },
-          { "id": "stat-photographers", "value": "10+", "label": "Photographers" }
-        ],
-        "facts": [],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "modeling-journey",
-      "title": "Her Story",
-      "public": false,
-      "sortOrder": 1,
-      "content": {
-        "summary": "Eighteen years, from a child on a Houston runway to independent international work.",
-        "body": "Emma was four years old the first time someone suggested she model. Her mother was a stay-at-home mom, and the two of them spent their days exploring Houston. A manager noticed how tall she was for her age and suggested she model the children's collection. That led to her first runway show — bright lights, real nerves, and a walk that felt like arriving somewhere.\n\nAround thirteen, modeling stopped being something that happened to her and became something she pursued. Agency work, castings, and the beginning of a portfolio.\n\nIn 2019, while still in her teens, she traveled to France for Paris Fashion Week and fashion editorial work at Château d'Angers. Her first international work.\n\nIn September 2021 she walked Negris LeBrum's Spring/Summer 2022 collection in New York. It became the longest working relationship of her career — more than ten projects with the house across New York and Houston, on the runway and in editorial.\n\nThe work since has moved across registers. Couture for Luisa and Anna Gupta. Bridal for Designs by Sippy and Yumi Katsura. A Moroccan caftan for Hiba Couture. Automotive editorial outside Brasserie 19. The Larita runway in April 2025, The Grid Show at Houston Fashion Week that June.\n\nYumi Katsura bridal in July 2026. Poshak in August 2026. She is still walking, and Dubai is next.",
-        "stats": [],
-        "facts": [
-          { "id": "tl-01", "kind": "milestone", "label": "First runway", "value": "Children's presentation after being scouted in Houston", "year": "Approx. 2008", "location": "Houston, Texas" },
-          { "id": "tl-02", "kind": "milestone", "label": "Modeling becomes serious", "value": "Consistent professional pursuit from age thirteen", "year": "Approx. 2017", "location": "Houston, Texas" },
-          { "id": "tl-03", "kind": "show", "label": "Paris Fashion Week", "value": "In-person participation", "year": "March 2019", "location": "Paris, France" },
-          { "id": "tl-04", "kind": "location", "label": "Château d'Angers editorial", "value": "Fashion and travel editorial", "year": "March 2019", "location": "Angers, France" },
-          { "id": "tl-05", "kind": "show", "label": "Milan Fashion Week", "value": "Virtual participation", "year": "", "location": "Milan, Italy" },
-          { "id": "tl-06", "kind": "show", "label": "New York Fashion Week", "value": "Negris LeBrum Spring/Summer 2022 — in-person runway", "year": "September 2021", "location": "New York, New York" },
-          { "id": "tl-07", "kind": "show", "label": "New York Fashion Week", "value": "Negris LeBrum SS23 — in-person runway", "year": "September 2022", "location": "New York, New York" },
-          { "id": "tl-08", "kind": "show", "label": "New York Fashion Week", "value": "Negris LeBrum — in-person runway", "year": "February 2023", "location": "New York, New York" },
-          { "id": "tl-09", "kind": "show", "label": "A Night in Paris", "value": "Coral Castillo and Carlton Jones", "year": "June 2023", "location": "Houston, Texas" },
-          { "id": "tl-10", "kind": "show", "label": "New York Fashion Week", "value": "Negris LeBrum SS24 — in-person runway", "year": "September 2023", "location": "New York, New York" },
-          { "id": "tl-11", "kind": "show", "label": "Colors Unite Us", "value": "Negris LeBrum soirée and fashion show", "year": "June 2024", "location": "Houston, Texas" },
-          { "id": "tl-12", "kind": "show", "label": "Designs by Sippy", "value": "Junior League of Houston runway", "year": "December 2024", "location": "Houston, Texas" },
-          { "id": "tl-13", "kind": "show", "label": "Luisa High Fashion Couture", "value": "Couture runway", "year": "March 2025", "location": "Houston, Texas" },
-          { "id": "tl-14", "kind": "show", "label": "BMW × Luxcior", "value": "Ella Markovsky", "year": "April 2025", "location": "Houston, Texas" },
-          { "id": "tl-15", "kind": "show", "label": "Larita Fashion", "value": "Runway show", "year": "April 2025", "location": "Houston, Texas" },
-          { "id": "tl-16", "kind": "show", "label": "The Grid Show", "value": "Houston Fashion Week — LUSID and Mysterious by N.P.N.", "year": "June 2025", "location": "Houston, Texas" },
-          { "id": "tl-17", "kind": "show", "label": "Anna Gupta × Mirabel", "value": "Couture trunk show", "year": "November 2025", "location": "Houston, Texas" },
-          { "id": "tl-18", "kind": "show", "label": "Yumi Katsura", "value": "Bridal presentation at Anime Matsuri", "year": "July 2026", "location": "Houston, Texas" },
-          { "id": "tl-19", "kind": "show", "label": "Poshak Fashion", "value": "Runway show — most recent", "year": "August 2026", "location": "Houston, Texas" },
-          { "id": "tl-20", "kind": "goal", "label": "Dubai", "value": "Next market", "year": "", "location": "Dubai, UAE" }
-        ],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "fashion-weeks",
-      "title": "Fashion Weeks",
-      "public": false,
-      "sortOrder": 2,
-      "content": {
-        "summary": "New York in person, Paris in person, Milan virtually.",
-        "body": "Emma's Fashion Week experience spans New York and Paris in person, with virtual participation connected to Milan. Her New York work has been anchored by Negris LeBrum across several seasons from Spring/Summer 2022 onward.",
-        "stats": [],
-        "facts": [
-          { "id": "fw-nyc", "kind": "show", "label": "New York Fashion Week", "value": "In-person runway across multiple seasons", "year": "2021–2023", "location": "New York, New York" },
-          { "id": "fw-paris", "kind": "show", "label": "Paris Fashion Week", "value": "In-person participation", "year": "March 2019", "location": "Paris, France" },
-          { "id": "fw-milan", "kind": "show", "label": "Milan Fashion Week", "value": "Virtual participation", "year": "", "location": "Milan, Italy" }
-        ],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "designers",
-      "title": "Selected Designers",
-      "public": false,
-      "sortOrder": 3,
-      "content": {
-        "summary": "Nineteen designers and houses across runway, couture, bridal and editorial.",
-        "body": "",
-        "stats": [],
-        "facts": [
-          { "id": "dz-negris", "kind": "designer", "label": "Negris LeBrum", "value": "Travis Hamilton — longest-running relationship, 10+ projects", "year": "2021–2024", "location": "New York & Houston" },
-          { "id": "dz-larita", "kind": "designer", "label": "Larita Fashion", "value": "Runway show", "year": "April 2025", "location": "Houston, Texas" },
-          { "id": "dz-yumi", "kind": "designer", "label": "Yumi Katsura New York", "value": "Bridal presentation", "year": "July 2026", "location": "Houston, Texas" },
-          { "id": "dz-poshak", "kind": "designer", "label": "Poshak Fashion", "value": "Runway show — most recent", "year": "August 2026", "location": "Houston, Texas" },
-          { "id": "dz-sippy", "kind": "designer", "label": "Designs by Sippy", "value": "Junior League of Houston runway", "year": "December 2024", "location": "Houston, Texas" },
-          { "id": "dz-luisa", "kind": "designer", "label": "Luisa High Fashion Couture", "value": "Couture runway", "year": "March 2025", "location": "Houston, Texas" },
-          { "id": "dz-npn", "kind": "designer", "label": "Mysterious by N.P.N.", "value": "Nick Phat Nguyen — The Grid Show", "year": "June 2025", "location": "Houston, Texas" },
-          { "id": "dz-lusid", "kind": "designer", "label": "LUSID", "value": "The Grid Show", "year": "June 2025", "location": "Houston, Texas" },
-          { "id": "dz-hiba", "kind": "designer", "label": "Hiba Couture", "value": "Moroccan caftan", "year": "May 2025", "location": "Houston, Texas" },
-          { "id": "dz-anna", "kind": "designer", "label": "Anna Gupta Couture", "value": "Couture trunk show", "year": "November 2025", "location": "Houston, Texas" },
-          { "id": "dz-danny", "kind": "designer", "label": "Danny Nguyen Couture", "value": "Couture and bridal", "year": "April 2025", "location": "Houston, Texas" },
-          { "id": "dz-ella", "kind": "designer", "label": "Ella Markovsky", "value": "Ella Promotions — BMW × Luxcior", "year": "April 2025", "location": "Houston, Texas" },
-          { "id": "dz-coral", "kind": "designer", "label": "Coral Castillo", "value": "A Night in Paris", "year": "June 2023", "location": "Houston, Texas" },
-          { "id": "dz-carlton", "kind": "designer", "label": "Carlton Jones", "value": "A Night in Paris", "year": "June 2023", "location": "Houston, Texas" }
-        ],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "beyond-the-runway",
-      "title": "Beyond The Runway",
-      "public": false,
-      "sortOrder": 4,
-      "content": {
-        "summary": "A working model, a cybersecurity student, and a co-founder.",
-        "body": "Emma is completing a Bachelor of Science in Cybersecurity and Information Assurance, and holds an Associate degree in Business and Management Administration.\n\nShe is Co-Founder of HARFT AI, where her work spans AI operations, platform implementation, cybersecurity, risk reduction and business operations.\n\nShe approaches a booking the way she approaches a system: what is the objective, what does the team need, and what could prevent the best result. Both, as she puts it, require preparation, communication, accountability, creative thinking, and the confidence to solve problems in real time.",
-        "stats": [],
-        "facts": [
-          { "id": "bt-bs", "kind": "education", "label": "Bachelor of Science", "value": "Cybersecurity & Information Assurance — in progress", "year": "", "location": "" },
-          { "id": "bt-aa", "kind": "education", "label": "Associate degree", "value": "Business & Management Administration", "year": "", "location": "" },
-          { "id": "bt-harft", "kind": "business", "label": "Co-Founder, HARFT AI", "value": "AI operations, platform implementation, cybersecurity, risk reduction, business operations", "year": "", "location": "" }
-        ],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "professional-approach",
-      "title": "Professional Approach",
-      "public": false,
-      "sortOrder": 5,
-      "content": {
-        "summary": "Arriving fifteen minutes early means arriving on time.",
-        "body": "Emma prepares the night before — a model bag with several colours and heights of heel, nude and black foundations, strapless support, covers, wipes, water, snacks. A designer may add a second or third look at the last minute; without the right foundation or shoe, the garment cannot go out.\n\nIn rehearsal she stays quiet and listens, because the stage director may not repeat the instruction. If someone else becomes confused, she holds the original direction rather than copying the mistake.\n\nShe treats every garment as a piece of art entrusted to her. Once dressed, she does not eat, does not sit unnecessarily, and takes care of anything she needs beforehand. If there is a problem with a garment she tells the dresser immediately rather than trying to fix it herself.\n\nShe treats every designer, photographer, dresser, stylist and technician the same regardless of how established they are. No number of shows or Fashion Weeks makes one person more important than another.",
-        "stats": [],
-        "facts": [],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "dubai",
-      "title": "International Direction",
-      "public": false,
-      "sortOrder": 6,
-      "content": {
-        "summary": "Dubai is the next chapter of an international career, not the beginning of one.",
-        "body": "Emma's international work began in France in 2019 and continued through New York Fashion Week and virtual participation in Milan. She is now focused on Dubai, Middle Eastern designers and the Gulf luxury market, with bridal and haute couture as her strongest registers.\n\nShe is available for international travel and extended bookings, and is seeking agency representation and paid international assignments.",
-        "stats": [],
-        "facts": [
-          { "id": "mk-hou", "kind": "location", "label": "Houston", "value": "Home market", "year": "", "location": "Texas, USA" },
-          { "id": "mk-fr", "kind": "location", "label": "France", "value": "Paris in person", "year": "2019", "location": "Paris & Angers" },
-          { "id": "mk-ny", "kind": "location", "label": "New York", "value": "Fashion Week runway", "year": "2021–2023", "location": "New York, USA" },
-          { "id": "mk-mi", "kind": "location", "label": "Milan", "value": "Virtual participation", "year": "", "location": "Italy" },
-          { "id": "mk-dxb", "kind": "goal", "label": "Dubai", "value": "Next market", "year": "", "location": "UAE" },
-          { "id": "mk-ww", "kind": "goal", "label": "Worldwide", "value": "Available for travel", "year": "", "location": "" }
-        ],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "international-availability",
-      "title": "International Availability",
-      "public": false,
-      "sortOrder": 7,
-      "content": {
-        "summary": "Houston and New York primary. Available internationally, including extended bookings and travel.",
-        "body": "Primary markets: Houston and New York. Available internationally for runway, couture, bridal, editorial and campaign work, including extended bookings and international travel. Currently seeking representation and paid international assignments, with a particular focus on Dubai and the Gulf.",
-        "stats": [],
-        "facts": [],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    },
-    {
-      "slug": "selected-archive",
-      "title": "Selected Work",
-      "public": false,
-      "sortOrder": 8,
-      "content": {
-        "summary": "",
-        "body": "",
-        "stats": [],
-        "facts": [],
-        "mediaIds": [],
-        "videoIds": [],
-        "creditIds": []
-      }
-    }
-  ]
+  {
+   "slug": "modeling-journey",
+   "title": "Her Story",
+   "public": false,
+   "sortOrder": 1,
+   "content": {
+    "summary": "Eighteen years, from a child on a Houston runway to independent international work.",
+    "body": "Emma was four years old the first time someone suggested she model. Her mother was a stay-at-home mom, and the two of them spent their days exploring Houston. A manager noticed how tall she was for her age and suggested she model the children's collection. That led to her first runway show — bright lights, real nerves, and a walk that felt like arriving somewhere.\n\nAround thirteen, modeling stopped being something that happened to her and became something she pursued. Agency work, castings, and the beginning of a portfolio.\n\nIn 2019, while still in her teens, she traveled to France for Paris Fashion Week and fashion editorial work at Château d'Angers. Her first international work.\n\nIn September 2021 she walked Negris LeBrum's Spring/Summer 2022 collection in New York. It became the longest working relationship of her career — more than ten projects with the house across New York and Houston, on the runway and in editorial.\n\nThe work since has moved across registers — couture and bridal, runway and editorial, in New York and in Houston. She is still walking, and Dubai is next.",
+    "stats": [],
+    "facts": [
+     {
+      "id": "tl-01",
+      "kind": "milestone",
+      "label": "First runway",
+      "value": "Children's presentation after being scouted in Houston",
+      "year": "Approx. 2008",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-02",
+      "kind": "milestone",
+      "label": "Modeling becomes serious",
+      "value": "Consistent professional pursuit from age thirteen",
+      "year": "Approx. 2017",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-03",
+      "kind": "show",
+      "label": "Paris Fashion Week",
+      "value": "In-person participation",
+      "year": "March 2019",
+      "location": "Paris, France"
+     },
+     {
+      "id": "tl-04",
+      "kind": "location",
+      "label": "Château d'Angers editorial",
+      "value": "Fashion and travel editorial",
+      "year": "March 2019",
+      "location": "Angers, France"
+     },
+     {
+      "id": "tl-05",
+      "kind": "show",
+      "label": "Milan Fashion Week",
+      "value": "Virtual participation",
+      "year": "",
+      "location": "Milan, Italy"
+     },
+     {
+      "id": "tl-06",
+      "kind": "show",
+      "label": "New York Fashion Week",
+      "value": "Negris LeBrum Spring/Summer 2022 — in-person runway",
+      "year": "September 2021",
+      "location": "New York, New York"
+     },
+     {
+      "id": "tl-07",
+      "kind": "show",
+      "label": "New York Fashion Week",
+      "value": "Negris LeBrum SS23 — in-person runway",
+      "year": "September 2022",
+      "location": "New York, New York"
+     },
+     {
+      "id": "tl-08",
+      "kind": "show",
+      "label": "New York Fashion Week",
+      "value": "Negris LeBrum — in-person runway",
+      "year": "February 2023",
+      "location": "New York, New York"
+     },
+     {
+      "id": "tl-09",
+      "kind": "show",
+      "label": "A Night in Paris",
+      "value": "Coral Castillo and Carlton Jones",
+      "year": "June 2023",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-10",
+      "kind": "show",
+      "label": "New York Fashion Week",
+      "value": "Negris LeBrum SS24 — in-person runway",
+      "year": "September 2023",
+      "location": "New York, New York"
+     },
+     {
+      "id": "tl-11",
+      "kind": "show",
+      "label": "Colors Unite Us",
+      "value": "Negris LeBrum soirée and fashion show",
+      "year": "June 2024",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-12",
+      "kind": "show",
+      "label": "Designs by Sippy",
+      "value": "Junior League of Houston runway",
+      "year": "December 2024",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-13",
+      "kind": "show",
+      "label": "Luisa High Fashion Couture",
+      "value": "Couture runway",
+      "year": "March 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-14",
+      "kind": "show",
+      "label": "BMW × Luxcior",
+      "value": "Ella Markovsky",
+      "year": "April 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-15",
+      "kind": "show",
+      "label": "Larita Fashion",
+      "value": "Runway show",
+      "year": "April 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-16",
+      "kind": "show",
+      "label": "The Grid Show",
+      "value": "Houston Fashion Week — LUSID and Mysterious by N.P.N.",
+      "year": "June 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-17",
+      "kind": "show",
+      "label": "Anna Gupta × Mirabel",
+      "value": "Couture trunk show",
+      "year": "November 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-18",
+      "kind": "show",
+      "label": "Yumi Katsura",
+      "value": "Bridal presentation at Anime Matsuri",
+      "year": "July 2026",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-19",
+      "kind": "show",
+      "label": "Poshak Fashion",
+      "value": "Runway show — most recent",
+      "year": "August 2026",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "tl-20",
+      "kind": "goal",
+      "label": "Dubai",
+      "value": "Next market",
+      "year": "",
+      "location": "Dubai, UAE"
+     }
+    ],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  },
+  {
+   "slug": "fashion-weeks",
+   "title": "Fashion Weeks",
+   "public": false,
+   "sortOrder": 2,
+   "content": {
+    "summary": "New York in person, Paris in person, Milan virtually.",
+    "body": "Emma's Fashion Week experience spans New York and Paris in person, with virtual participation connected to Milan. Her New York work has been anchored by Negris LeBrum across several seasons from Spring/Summer 2022 onward.",
+    "stats": [],
+    "facts": [
+     {
+      "id": "fw-nyc",
+      "kind": "show",
+      "label": "New York Fashion Week",
+      "value": "In-person runway across multiple seasons",
+      "year": "2021–2023",
+      "location": "New York, New York"
+     },
+     {
+      "id": "fw-paris",
+      "kind": "show",
+      "label": "Paris Fashion Week",
+      "value": "In-person participation",
+      "year": "March 2019",
+      "location": "Paris, France"
+     },
+     {
+      "id": "fw-milan",
+      "kind": "show",
+      "label": "Milan Fashion Week",
+      "value": "Virtual participation",
+      "year": "",
+      "location": "Milan, Italy"
+     }
+    ],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  },
+  {
+   "slug": "designers",
+   "title": "Selected Designers",
+   "public": false,
+   "sortOrder": 3,
+   "content": {
+    "summary": "Nineteen designers and houses across runway, couture, bridal and editorial.",
+    "body": "",
+    "stats": [],
+    "facts": [
+     {
+      "id": "dz-negris",
+      "kind": "designer",
+      "label": "Negris LeBrum",
+      "value": "Travis Hamilton — longest-running relationship, 10+ projects",
+      "year": "2021–2024",
+      "location": "New York & Houston"
+     },
+     {
+      "id": "dz-larita",
+      "kind": "designer",
+      "label": "Larita Fashion",
+      "value": "Runway show",
+      "year": "April 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-yumi",
+      "kind": "designer",
+      "label": "Yumi Katsura New York",
+      "value": "Bridal presentation",
+      "year": "July 2026",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-poshak",
+      "kind": "designer",
+      "label": "Poshak Fashion",
+      "value": "Runway show — most recent",
+      "year": "August 2026",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-sippy",
+      "kind": "designer",
+      "label": "Designs by Sippy",
+      "value": "Junior League of Houston runway",
+      "year": "December 2024",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-luisa",
+      "kind": "designer",
+      "label": "Luisa High Fashion Couture",
+      "value": "Couture runway",
+      "year": "March 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-npn",
+      "kind": "designer",
+      "label": "Mysterious by N.P.N.",
+      "value": "Nick Phat Nguyen — The Grid Show",
+      "year": "June 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-lusid",
+      "kind": "designer",
+      "label": "LUSID",
+      "value": "The Grid Show",
+      "year": "June 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-hiba",
+      "kind": "designer",
+      "label": "Hiba Couture",
+      "value": "Moroccan caftan",
+      "year": "May 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-anna",
+      "kind": "designer",
+      "label": "Anna Gupta Couture",
+      "value": "Couture trunk show",
+      "year": "November 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-danny",
+      "kind": "designer",
+      "label": "Danny Nguyen Couture",
+      "value": "Couture and bridal",
+      "year": "April 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-ella",
+      "kind": "designer",
+      "label": "Ella Markovsky",
+      "value": "Ella Promotions — BMW × Luxcior",
+      "year": "April 2025",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-coral",
+      "kind": "designer",
+      "label": "Coral Castillo",
+      "value": "A Night in Paris",
+      "year": "June 2023",
+      "location": "Houston, Texas"
+     },
+     {
+      "id": "dz-carlton",
+      "kind": "designer",
+      "label": "Carlton Jones",
+      "value": "A Night in Paris",
+      "year": "June 2023",
+      "location": "Houston, Texas"
+     }
+    ],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  },
+  {
+   "slug": "beyond-the-runway",
+   "title": "Beyond The Runway",
+   "public": false,
+   "sortOrder": 4,
+   "content": {
+    "summary": "A working model, a cybersecurity student, and a co-founder.",
+    "body": "Emma is completing a Bachelor of Science in Cybersecurity and Information Assurance, and holds an Associate degree in Business and Management Administration.\n\nShe is Co-Founder of HARFT AI, where her work spans AI operations, platform implementation, cybersecurity, risk reduction and business operations.\n\nShe approaches a booking the way she approaches a system: what is the objective, what does the team need, and what could prevent the best result. Both, as she puts it, require preparation, communication, accountability, creative thinking, and the confidence to solve problems in real time.",
+    "stats": [],
+    "facts": [
+     {
+      "id": "bt-bs",
+      "kind": "education",
+      "label": "Bachelor of Science",
+      "value": "Cybersecurity & Information Assurance — in progress",
+      "year": "",
+      "location": ""
+     },
+     {
+      "id": "bt-aa",
+      "kind": "education",
+      "label": "Associate degree",
+      "value": "Business & Management Administration",
+      "year": "",
+      "location": ""
+     },
+     {
+      "id": "bt-harft",
+      "kind": "business",
+      "label": "Co-Founder, HARFT AI",
+      "value": "AI operations, platform implementation, cybersecurity, risk reduction, business operations",
+      "year": "",
+      "location": ""
+     }
+    ],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  },
+  {
+   "slug": "professional-approach",
+   "title": "Professional Approach",
+   "public": false,
+   "sortOrder": 5,
+   "content": {
+    "summary": "Arriving fifteen minutes early means arriving on time.",
+    "body": "Emma prepares the night before — a model bag with several colours and heights of heel, nude and black foundations, strapless support, covers, wipes, water, snacks. A designer may add a second or third look at the last minute; without the right foundation or shoe, the garment cannot go out.\n\nIn rehearsal she stays quiet and listens, because the stage director may not repeat the instruction. If someone else becomes confused, she holds the original direction rather than copying the mistake.\n\nShe treats every garment as a piece of art entrusted to her. Once dressed, she does not eat, does not sit unnecessarily, and takes care of anything she needs beforehand. If there is a problem with a garment she tells the dresser immediately rather than trying to fix it herself.\n\nShe treats every designer, photographer, dresser, stylist and technician the same regardless of how established they are. No number of shows or Fashion Weeks makes one person more important than another.",
+    "stats": [],
+    "facts": [],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  },
+  {
+   "slug": "dubai",
+   "title": "International Direction",
+   "public": false,
+   "sortOrder": 6,
+   "content": {
+    "summary": "Dubai is the next chapter of an international career, not the beginning of one.",
+    "body": "Emma's international work began in France in 2019 and continued through New York Fashion Week and virtual participation in Milan. She is now focused on Dubai, Middle Eastern designers and the Gulf luxury market, with bridal and haute couture as her strongest registers.\n\nShe is available for international travel and extended bookings, and is seeking agency representation and paid international assignments.",
+    "stats": [],
+    "facts": [
+     {
+      "id": "mk-hou",
+      "kind": "location",
+      "label": "Houston",
+      "value": "Home market",
+      "year": "",
+      "location": "Texas, USA"
+     },
+     {
+      "id": "mk-fr",
+      "kind": "location",
+      "label": "France",
+      "value": "Paris in person",
+      "year": "2019",
+      "location": "Paris & Angers"
+     },
+     {
+      "id": "mk-ny",
+      "kind": "location",
+      "label": "New York",
+      "value": "Fashion Week runway",
+      "year": "2021–2023",
+      "location": "New York, USA"
+     },
+     {
+      "id": "mk-mi",
+      "kind": "location",
+      "label": "Milan",
+      "value": "Virtual participation",
+      "year": "",
+      "location": "Italy"
+     },
+     {
+      "id": "mk-dxb",
+      "kind": "goal",
+      "label": "Dubai",
+      "value": "Next market",
+      "year": "",
+      "location": "UAE"
+     },
+     {
+      "id": "mk-ww",
+      "kind": "goal",
+      "label": "Worldwide",
+      "value": "Available for travel",
+      "year": "",
+      "location": ""
+     }
+    ],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  },
+  {
+   "slug": "international-availability",
+   "title": "International Availability",
+   "public": false,
+   "sortOrder": 7,
+   "content": {
+    "summary": "Houston and New York primary. Available internationally, including extended bookings and travel.",
+    "body": "Primary markets: Houston and New York. Available internationally for runway, couture, bridal, editorial and campaign work, including extended bookings and international travel. Currently seeking representation and paid international assignments, with a particular focus on Dubai and the Gulf.",
+    "stats": [],
+    "facts": [],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  },
+  {
+   "slug": "selected-archive",
+   "title": "Selected Work",
+   "public": false,
+   "sortOrder": 8,
+   "content": {
+    "summary": "",
+    "body": "",
+    "stats": [],
+    "facts": [],
+    "mediaIds": [],
+    "videoIds": [],
+    "creditIds": []
+   }
+  }
+ ]
 }

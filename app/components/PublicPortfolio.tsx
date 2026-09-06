@@ -1,13 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { creditHasShowPage, publicAssetSrc, storyParagraphs, findStorySection, videoPosterSrc, type MediaAsset, type PortfolioData, type Video } from "../../lib/portfolio";
+import { creditHasShowPage, curateHomepage, publicAssetSrc, storyParagraphs, findStorySection, videoPosterSrc, type GallerySpec, type MediaAsset, type PortfolioData, type Video } from "../../lib/portfolio";
 import { BeyondTheRunway, CareerTimeline, ExperienceStrip, HerStory, InternationalDirection, ProfessionalApproach, SelectedDesigners, SelectedWork } from "./StorySections";
 import { analyticsEvents, trackEvent } from "../../lib/analytics";
 import { HarftAttribution } from "./HarftAttribution";
 import { InstagramLink } from "./InstagramLink";
 
-const groups = ["runway", "editorial", "beauty", "digitals"] as const;
+/**
+ * The homepage galleries. Each one is a distinct kind of work, sized to what the
+ * archive can actually support: `limit` caps the run, `maxPerShoot` stops one set
+ * being printed end to end. "Portrait / Studio" replaces the old Beauty and
+ * Digitals pair — two frames of one dress is not a beauty section, and a styled
+ * studio shoot is not a casting digital.
+ */
+const galleries: (GallerySpec & { id: string; title: string; blurb?: string; dark?: boolean })[] = [
+  { key: "runway", id: "runway", title: "On the runway", blurb: "Selected fashion-week and designer presentations.", dark: true, categories: ["runway"], limit: 8, maxPerShoot: 2 },
+  { key: "editorial", id: "editorial", title: "Editorial", categories: ["editorial", "campaign", "lookbook"], limit: 10, maxPerShoot: 3 },
+  { key: "portrait", id: "portrait", title: "Portrait / Studio", categories: ["beauty", "digitals", "headshot", "full-body"], limit: 4, maxPerShoot: 1 },
+];
 
 function AssetImage({ asset, className = "", priority = false }: { asset: MediaAsset; className?: string; priority?: boolean }) {
   return <img className={className} src={publicAssetSrc(asset)} alt={asset.caption || `${asset.category} portfolio photograph`} style={{ objectPosition: asset.focalPoint }} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : "auto"} />;
@@ -17,8 +28,10 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
   const data = initialData;
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // One pass decides where every image goes, so nothing appears on the page twice.
+  const curation = useMemo(() => curateHomepage(data, galleries), [data]);
+  const { hero, selectedWork, placed } = curation;
   const publicMedia = useMemo(() => data.media.filter((asset) => asset.public), [data.media]);
-  const hero = publicMedia.find((asset) => asset.id === data.settings.heroMediaId) ?? publicMedia.find((asset) => asset.featured);
   const publicCredits = data.credits.filter((credit) => credit.public && credit.priority !== "hidden");
   // The primary reel leads, the rest follow in library order. Every clip renders as
   // the same kind of card — none of them becomes a section backdrop.
@@ -32,15 +45,13 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
   // Section numbers are assigned to the sections that actually render, so the
   // editorial "01 / …" rhythm stays contiguous as story content is published.
   const journey = findStorySection(data.story, "modeling-journey");
-  const archive = findStorySection(data.story, "selected-archive");
   const designerSection = findStorySection(data.story, "designers");
   const visible = [
     heroStat ? "experience" : "",
     "profile",
-    archive && archive.content.mediaIds.length ? "selected-work" : "",
+    selectedWork.length ? "selected-work" : "",
     journey && (journey.content.body.trim() || journey.content.mediaIds.length) ? "story" : "",
-    "runway",
-    ...groups.slice(1),
+    ...galleries.map((gallery) => gallery.id),
     "video",
     "credits",
     designerSection && (designerSection.content.creditIds.length || designerSection.content.facts.some((f) => f.kind === "designer")) ? "designers" : "",
@@ -53,7 +64,7 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
   const idx = (key: string) => String(visible.indexOf(key) + 1).padStart(2, "0");
 
   const hasStory = data.story.length > 0;
-  const navItems = ["Profile", ...(hasStory ? ["Story"] : []), "Runway", ...(hasStory ? ["Career"] : []), "Editorial", "Beauty", "Digitals", "Video", "Credits", "Contact"];
+  const navItems = ["Profile", ...(hasStory ? ["Story"] : []), "Runway", ...(hasStory ? ["Career"] : []), "Editorial", "Portrait", "Video", "Credits", "Contact"];
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -116,28 +127,25 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
         </div>
       </section>
 
-      <SelectedWork data={data} index={idx("selected-work")} />
+      <SelectedWork assets={selectedWork} data={data} index={idx("selected-work")} />
 
       <HerStory data={data} index={idx("story")} />
 
-      <section id="runway" className="dark-section section-pad">
-        <div className="section-heading light">
-          <p className="section-index">{idx("runway")} / Runway</p>
-          <h2>On the runway</h2>
-          <p>Selected fashion-week and designer presentations.</p>
-        </div>
-        <MediaMosaic assets={publicMedia.filter((asset) => asset.category === "runway")} emptyLabel="Runway selections are currently in curation." gallery="runway" />
-      </section>
-
-      {groups.slice(1).map((group, index) => {
-        const assets = publicMedia.filter((asset) => asset.category === group);
+      {galleries.map((gallery, index) => {
+        const assets = curation.galleries[gallery.key] ?? [];
+        if (!assets.length && !gallery.dark) return null;
         return (
-          <section id={group} className={`gallery-section section-pad ${index % 2 ? "soft" : ""}`} key={group}>
-            <div className="section-heading">
-              <p className="section-index">{idx(group)} / {group}</p>
-              <h2>{group === "digitals" ? "Digitals / Polaroids" : group}</h2>
+          <section
+            id={gallery.id}
+            key={gallery.key}
+            className={gallery.dark ? "dark-section section-pad" : `gallery-section section-pad ${index % 2 ? "soft" : ""}`}
+          >
+            <div className={gallery.dark ? "section-heading light" : "section-heading"}>
+              <p className="section-index">{idx(gallery.id)} / {gallery.title}</p>
+              <h2>{gallery.title}</h2>
+              {gallery.blurb && <p>{gallery.blurb}</p>}
             </div>
-            <MediaMosaic assets={assets} emptyLabel={`${group[0].toUpperCase()}${group.slice(1)} selections are currently in curation.`} gallery={group} />
+            <MediaMosaic assets={assets} emptyLabel={`${gallery.title} selections are currently in curation.`} gallery={gallery.key} />
           </section>
         );
       })}
@@ -174,7 +182,7 @@ export function PublicPortfolio({ initialData }: { initialData: PortfolioData })
         ) : <p className="empty-copy">Verified runway credits will appear here after Emma adds the designer and show details.</p>}
       </section>
 
-      <SelectedDesigners data={data} index={idx("designers")} />
+      <SelectedDesigners data={data} placed={placed} index={idx("designers")} />
 
       <CareerTimeline data={data} index={idx("career")} />
 
@@ -249,7 +257,10 @@ export function ReelGrid({ videos }: { videos: Video[] }) {
               ? <video controls playsInline preload="none" poster={poster || undefined} src={video.url} />
               : <a className="reel-link" href={video.url} target="_blank" rel="noreferrer">Play footage <span aria-hidden="true">↗</span></a>}
             {(video.label || video.designer || video.year) && (
-              <figcaption><span>{video.label || video.designer}</span><span>{video.year}</span></figcaption>
+              <figcaption>
+                <span>{video.primary && <em>Primary reel · </em>}{video.label || video.designer}</span>
+                <span>{video.year}</span>
+              </figcaption>
             )}
           </figure>
         );
